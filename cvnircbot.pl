@@ -16,6 +16,5 @@ unless ($config = do $conffile) {
     die "$basename: couldn't run $conffile\n"       unless $config;
 }
 
-use Data::Dumper;
-print(Dumper($config));
-exit(0);
+my $bot = CanvonIRCBot->new(@$config);
+$bot->run();
