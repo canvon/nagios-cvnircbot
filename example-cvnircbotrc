@@ -1,0 +1,10 @@
+return [
+	server => 'your-server',
+	port   => '6667',
+	channels => ['#botchannel'],
+
+	nick      => 'acvnbot',
+	alt_nicks => ['acvnbot_', 'acvnbot-'],
+	username  => 'acvnbot',
+	name      => "some instance of a canvon's IRC bot"
+];
