@@ -41,6 +41,11 @@ sub init
 {
     my ($bot) = @_;
 
+    die("No Nagios log channels defined!\n")
+      unless (exists($bot->{nagios_channels}) &&
+              defined($bot->{nagios_channels}) &&
+              @{$bot->{nagios_channels}} >= 1);
+
     my $nagios_logfile = $bot->get_nagios_logfile();
 
     $bot->log_debug("Opening Nagios log file: $nagios_logfile");
@@ -60,6 +65,40 @@ sub init
     # Everything went well so far.
     $bot->log_debug("Init succeeded.");
     return 1;
+}
+
+sub tick
+{
+    my ($bot) = @_;
+
+    my $next_tick_secs = 1;
+
+    my $fh = $bot->{nagios_logfile_fh};
+    unless ($fh)
+    {
+        $bot->log("Couldn't get Nagios log file file handle!");
+        return $next_tick_secs;
+    }
+
+    # Try to read a log line.
+    my $line = <$fh>;
+    if (defined($line))
+    {
+        chomp($line);
+
+        # Got a log line, pass it on to the configured channels.
+        $bot->log_debug("Got a Nagios log message, passing it on to configured channels...");
+        foreach my $channel (@{$bot->{nagios_channels}})
+        {
+            $bot->log_debug("Passing to $channel: $line");
+
+            # For now, simply send the whole line, unchecked and unformatted.
+            $bot->say(channel => $channel, body => $line);
+        }
+    }
+
+    # Periodically check again.
+    return $next_tick_secs;
 }
 
 1;
