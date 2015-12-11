@@ -194,6 +194,8 @@ sub tick
         foreach my $channel (@{$bot->{nagios_channels}})
         {
             my $out = '';
+            my $out_public = 0;
+
             if ($msg->{is_data} && $msg->{type_recognized})
             {
                 if ($msg->{type} eq 'HOST NOTIFICATION')
@@ -203,6 +205,7 @@ sub tick
                             $msg->{data}{HOSTSTATE}." **  ".
                             "Info: ".$msg->{data}{HOSTOUTPUT}."  ".
                             "Date/Time: ".localtime($msg->{timestamp});
+                    $out_public = 1;
                 }
                 elsif ($msg->{type} eq 'SERVICE NOTIFICATION')
                 {
@@ -212,6 +215,26 @@ sub tick
                             $msg->{data}{SERVICESTATE}." **  ".
                             "Info: ".$msg->{data}{SERVICEOUTPUT}."  ".
                             "Date/Time: ".localtime($msg->{timestamp});
+                    $out_public = 1;
+                }
+                elsif ($msg->{type} eq 'HOST ALERT')
+                {
+                    $out .= "host alert: ".$msg->{data}{HOSTNAME}.
+                            " is ".$msg->{data}{HOSTSTATE}.
+                            ", type ".$msg->{data}{HOSTSTATETYPE}.
+                            " (".$msg->{data}{HOSTATTEMPT}.
+                            "):  Info: ".$msg->{data}{HOSTOUTPUT}.
+                            "  Date/Time: ".localtime($msg->{timestamp});
+                }
+                elsif ($msg->{type} eq 'SERVICE ALERT')
+                {
+                    $out .= "service alert: ".$msg->{data}{HOSTNAME}.
+                            "/".$msg->{data}{SERVICEDESC}.
+                            " is ".$msg->{data}{SERVICESTATE}.
+                            ", type ".$msg->{data}{SERVICESTATETYPE}.
+                            " (".$msg->{data}{SERVICEATTEMPT}.
+                            "):  Info: ".$msg->{data}{SERVICEOUTPUT}.
+                            "  Date/Time: ".localtime($msg->{timestamp});
                 }
             }
             else
@@ -224,7 +247,14 @@ sub tick
             if (length($out) >= 1)
             {
                 $bot->log_debug("Passing to $channel: $out");
-                $bot->say(channel => $channel, body => $out);
+                if ($out_public)
+                {
+                    $bot->say(channel => $channel, body => $out);
+                }
+                else
+                {
+                    $bot->notice(channel => $channel, body => $out);
+                }
             }
         }
     }
