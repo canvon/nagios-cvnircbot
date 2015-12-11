@@ -138,10 +138,10 @@ sub parse_nagios_log_line
         $ret->{data} = {};
         $ret->{data}{CONTACTNAME}      = $all_data[0];
         $ret->{data}{HOSTNAME}         = $all_data[1];
-        $ret->{data}{SERVICEDESC}      = $all_data[1];
-        $ret->{data}{SERVICESTATE}     = $all_data[2];
-        $ret->{data}{notify_command}   = $all_data[3];
-        $ret->{data}{SERVICEOUTPUT}    = $all_data[4];
+        $ret->{data}{SERVICEDESC}      = $all_data[2];
+        $ret->{data}{SERVICESTATE}     = $all_data[3];
+        $ret->{data}{notify_command}   = $all_data[4];
+        $ret->{data}{SERVICEOUTPUT}    = $all_data[5];
         $ret->{type_recognized} = 1
     }
 
