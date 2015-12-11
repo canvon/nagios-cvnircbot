@@ -2,8 +2,12 @@ package CanvonIRCBot;
 use Bot::BasicBot;
 our @ISA = qw(Bot::BasicBot);
 
+use strict;
+use warnings;
+
 #use Carp;
 use FileHandle;
+use Fcntl qw(:DEFAULT :seek);
 
 sub get_nagios_logfile
 {
