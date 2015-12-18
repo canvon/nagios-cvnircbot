@@ -287,4 +287,17 @@ sub tick
     return $next_tick_secs;
 }
 
+sub said
+{
+    my ($bot, $irc_msg) = @_;
+
+    # Say nothing unless we were addressed.
+    return undef unless $irc_msg->{address};
+
+    $bot->log_debug("We were addressed! ".$irc_msg->{who}." said to us: ".$irc_msg->{body});
+
+    # Say nothing, for now.
+    return undef;
+}
+
 1;
