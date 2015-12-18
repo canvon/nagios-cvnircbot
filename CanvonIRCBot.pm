@@ -427,4 +427,9 @@ sub said
     return undef;
 }
 
+sub help
+{
+    return "Available commands: problems, problem hosts, downtimes, host FOO,BAR,BAZ, services on FOO,BAR,BAZ";
+}
+
 1;
