@@ -302,7 +302,8 @@ sub said
         {
             $bot->log_debug("Request for command 'problems'; starting icli...");
 
-            my $result = `icli -C -xn -z'!o'`;
+            #my $result = `icli -C -xn -z'!o'`;
+            my $result = `icli -v -C -xn -z'!o'`;
             foreach my $line (split(/\n/, $result))
             {
                 next unless (length($line) >= 1);
