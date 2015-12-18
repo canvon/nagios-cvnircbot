@@ -359,6 +359,34 @@ sub said
             #return undef;
             return "End of output of command 'downtimes'.";
         }
+        elsif (/^host\s+(\S+)\s*$/)
+        {
+            $bot->log_debug("Request for command 'host'");
+
+            my $host = $1;
+            unless ($host =~ /^[A-Za-z0-9.][-A-Za-z0-9.,]*$/)
+            {
+                $bot->log_debug("Invalid host: $host");
+                return "Invalid host.";
+            }
+
+            $bot->log_debug("Starting icli...");
+            my $result = `icli -v -C -xn -lh -h '$host'`;
+            foreach my $line (split(/\n/, $result))
+            {
+                next unless (length($line) >= 1);
+
+                # For now, simply pass on the icli output lines unmodified,
+                # and with no output size limiting...
+                $bot->log_debug("Passing back line: $line");
+                $irc_msg->{body} = $line;
+                $bot->say(%{$irc_msg});
+            }
+
+            $bot->log_debug("Done with processing command 'host'.");
+            #return undef;
+            return "End of output of command 'host'.";
+        }
         else
         {
             $bot->log_debug("Unknown command `$_'.");
