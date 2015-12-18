@@ -41,6 +41,13 @@ sub init
 {
     my ($bot) = @_;
 
+    $bot->{nagios_msg_ignore_external_command} = [
+        'PROCESS_SERVICE_CHECK_RESULT'
+    ];
+    $bot->{nagios_msg_ignore} = [
+        'PASSIVE SERVICE CHECK'
+    ];
+
     die("No Nagios log channels defined!\n")
       unless (exists($bot->{nagios_channels}) &&
               defined($bot->{nagios_channels}) &&
@@ -65,6 +72,15 @@ sub init
     # Everything went well so far.
     $bot->log_debug("Init succeeded.");
     return 1;
+}
+
+sub is_nagios_log_line_ignored
+{
+    my ($bot, $msg) = @_;
+    return 1 if grep $msg->{type} ($bot->{nagios_msg_ignore}) > 0 or
+                $msg->{type} eq 'EXTERNAL COMMAND' &&
+                  grep $msg->{all_data}[0] ($bot->{nagios_msg_ignore_external_command}) > 0;
+    return 0;
 }
 
 sub parse_nagios_log_line
@@ -145,7 +161,7 @@ sub parse_nagios_log_line
         $ret->{type_recognized} = 1
     }
 
-    unless ($ret->{type_recognized})
+    unless ($ret->{type_recognized} || $bot->is_nagios_log_line_ignored($ret))
     {
         $bot->log_debug("Unrecognized data Nagios message ("
                        .localtime($ret->{timestamp})
@@ -186,6 +202,12 @@ sub tick
         unless (defined($msg))
         {
             $bot->log("Couldn't parse Nagios log line: $line");
+            return $next_tick_secs;
+        }
+
+        if ($bot->is_nagios_log_line_ignored($msg))
+        {
+            # Silently ignore, or else the log spam will make us go crazy...
             return $next_tick_secs;
         }
 
