@@ -296,7 +296,32 @@ sub said
 
     $bot->log_debug("We were addressed! ".$irc_msg->{who}." said to us: ".$irc_msg->{body});
 
-    # Say nothing, for now.
+    for ($irc_msg->{body})
+    {
+        if (/^problems$/)
+        {
+            my $result = `icli -C -xn -z'!o'`;
+            foreach my $line (split(/\n/, $result))
+            {
+                next unless (length($line) >= 1);
+
+                # For now, simply pass on the icli output lines unmodified,
+                # and with no output size limiting...
+                $irc_msg->{body} = $line;
+                $bot->say(%{$irc_msg});
+            }
+
+            return undef;
+        }
+        else
+        {
+            $bot->log_debug("Unknown command `$_'.");
+            return "Unknown command.";
+        }
+    }
+
+    # Say nothing, if we should get here.
+    $bot->log_debug("Saying nothing as fallback.");
     return undef;
 }
 
