@@ -45,6 +45,7 @@ sub init
         'PROCESS_SERVICE_CHECK_RESULT'
     ];
     $bot->{nagios_msg_ignore} = [
+        'PASSIVE HOST CHECK',
         'PASSIVE SERVICE CHECK'
     ];
 
