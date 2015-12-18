@@ -42,6 +42,7 @@ sub init
     my ($bot) = @_;
 
     $bot->{nagios_msg_ignore_external_command} = [
+        'PROCESS_HOST_CHECK_RESULT',
         'PROCESS_SERVICE_CHECK_RESULT'
     ];
     $bot->{nagios_msg_ignore} = [
