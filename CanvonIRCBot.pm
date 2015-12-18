@@ -315,7 +315,46 @@ sub said
                 $bot->say(%{$irc_msg});
             }
 
-            return undef;
+            #return undef;
+            return "End of output of command 'problems'.";
+        }
+        elsif (/^problem hosts$/)
+        {
+            $bot->log_debug("Request for command 'problem hosts'; starting icli...");
+
+            my $result = `icli -v -C -xn -lh -z'!o'`;
+            foreach my $line (split(/\n/, $result))
+            {
+                next unless (length($line) >= 1);
+
+                # For now, simply pass on the icli output lines unmodified,
+                # and with no output size limiting...
+                $bot->log_debug("Passing back line: $line");
+                $irc_msg->{body} = $line;
+                $bot->say(%{$irc_msg});
+            }
+
+            #return undef;
+            return "End of output of command 'problem hosts'.";
+        }
+        elsif (/^downtimes$/)
+        {
+            $bot->log_debug("Request for command 'downtimes'; starting icli...");
+
+            my $result = `icli -v -C -xn -ld`;
+            foreach my $line (split(/\n/, $result))
+            {
+                next unless (length($line) >= 1);
+
+                # For now, simply pass on the icli output lines unmodified,
+                # and with no output size limiting...
+                $bot->log_debug("Passing back line: $line");
+                $irc_msg->{body} = $line;
+                $bot->say(%{$irc_msg});
+            }
+
+            #return undef;
+            return "End of output of command 'downtimes'.";
         }
         else
         {
