@@ -425,7 +425,7 @@ sub said
                 $bot->log_debug("Invalid host: $host");
                 return "Invalid host.";
             }
-            unless ($service =~ /^[A-Za-z0-9.][-A-Za-z0-9., /]*$/)
+            unless ($service =~ m#^[A-Za-z0-9.][-A-Za-z0-9., /]*$#)
             {
                 $bot->log_debug("Invalid service $service");
                 return "Invalid service.";
