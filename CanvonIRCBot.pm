@@ -300,6 +300,8 @@ sub said
     {
         if (/^problems$/)
         {
+            $bot->log_debug("Request for command 'problems'; starting icli...");
+
             my $result = `icli -C -xn -z'!o'`;
             foreach my $line (split(/\n/, $result))
             {
@@ -307,6 +309,7 @@ sub said
 
                 # For now, simply pass on the icli output lines unmodified,
                 # and with no output size limiting...
+                $bot->log_debug("Passing back line: $line");
                 $irc_msg->{body} = $line;
                 $bot->say(%{$irc_msg});
             }
