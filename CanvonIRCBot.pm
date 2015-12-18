@@ -315,6 +315,7 @@ sub said
                 $bot->say(%{$irc_msg});
             }
 
+            $bot->log_debug("Done with processing command 'problems'.");
             #return undef;
             return "End of output of command 'problems'.";
         }
@@ -334,6 +335,7 @@ sub said
                 $bot->say(%{$irc_msg});
             }
 
+            $bot->log_debug("Done with processing command 'problem hosts'.");
             #return undef;
             return "End of output of command 'problem hosts'.";
         }
@@ -353,6 +355,7 @@ sub said
                 $bot->say(%{$irc_msg});
             }
 
+            $bot->log_debug("Done with processing command 'downtimes'.");
             #return undef;
             return "End of output of command 'downtimes'.";
         }
