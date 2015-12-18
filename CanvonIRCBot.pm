@@ -415,6 +415,41 @@ sub said
             #return undef;
             return "End of output of command 'services on'.";
         }
+        elsif (/^service\s+(\S.*?\S)(?:\s+on\s+(\S+))?\s*$/)
+        {
+            $bot->log_debug("Request for command 'service'");
+
+            my ($service, $host) = ($1, $2);
+            unless (!defined($host) || $host =~ /^[A-Za-z0-9.][-A-Za-z0-9.,]*$/)
+            {
+                $bot->log_debug("Invalid host: $host");
+                return "Invalid host.";
+            }
+            unless ($service =~ /^[A-Za-z0-9.][-A-Za-z0-9., /]*$/)
+            {
+                $bot->log_debug("Invalid service $service");
+                return "Invalid service.";
+            }
+
+            $bot->log_debug("Starting icli...");
+            my $result = defined($host)
+                ? `icli -v -C -xn -ls -h '$host' -s '$service'`
+                : `icli -v -C -xn -ls            -s '$service'`;
+            foreach my $line (split(/\n/, $result))
+            {
+                next unless (length($line) >= 1);
+
+                # For now, simply pass on the icli output lines unmodified,
+                # and with no output size limiting...
+                $bot->log_debug("Passing back line: $line");
+                $irc_msg->{body} = $line;
+                $bot->say(%{$irc_msg});
+            }
+
+            $bot->log_debug("Done with processing command 'service'.");
+            #return undef;
+            return "End of output of command 'service'.";
+        }
         else
         {
             $bot->log_debug("Unknown command `$_'.");
@@ -429,7 +464,7 @@ sub said
 
 sub help
 {
-    return "Available commands: problems, problem hosts, downtimes, host FOO,BAR,BAZ, services on FOO,BAR,BAZ";
+    return "Available commands: problems, problem hosts, downtimes, host FOO,BAR,BAZ, services on FOO,BAR,BAZ, service MY SERVICE,ANOTHER SERVICE[ on HOST1,HOST2,HOST3]";
 }
 
 1;
