@@ -77,9 +77,9 @@ sub init
 sub is_nagios_log_line_ignored
 {
     my ($bot, $msg) = @_;
-    return 1 if grep $msg->{type} ($bot->{nagios_msg_ignore}) > 0 or
-                $msg->{type} eq 'EXTERNAL COMMAND' &&
-                  grep $msg->{all_data}[0] ($bot->{nagios_msg_ignore_external_command}) > 0;
+    return 1 if ((grep {$msg->{type} eq $_} (@{$bot->{nagios_msg_ignore}})) > 0);
+    return 1 if ($msg->{type} eq 'EXTERNAL COMMAND' &&
+                 (grep {$msg->{all_data}[0] eq $_} (@{$bot->{nagios_msg_ignore_external_command}})) > 0);
     return 0;
 }
 
