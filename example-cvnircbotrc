@@ -1,10 +1,16 @@
 return [
 	server => 'your-server',
 	port   => '6667',
+	#ssl   => 1,
 	channels => ['#botchannel'],
 
 	nick      => 'acvnbot',
 	alt_nicks => ['acvnbot_', 'acvnbot-'],
 	username  => 'acvnbot',
-	name      => "some instance of a canvon's IRC bot"
+	name      => "some instance of a canvon's IRC bot",
+
+	nagios_logfile  => undef,
+	nagios_channels => ['#botchannel'],
+
+	debug => 1,
 ];

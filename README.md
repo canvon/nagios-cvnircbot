@@ -47,6 +47,17 @@ have to copy the `example-cvnircbotrc` to `~/.cvnircbot/cvnircbotrc` first, and
 edit the file to set the IRC server to use, bot nickname, channel and other
 things.
 
+Be sure to set up your Nagios log file properly (`undef` will do, and default
+to where it's stored on _Debian_ -- otherwise, you probably want to set an
+absolute path, but it can be any Perl expression). The default currently is
+`/var/log/nagios3/nagios.log`.
+
+Also be sure to set the `nagios_channels` to some of your bot `channels` so you
+will be receiving the Nagios messages as intended.
+
+If you like rather having output of what the software is doing than silence,
+leave the `debug` definition in; otherwise, comment it out.
+
 ### Bot commands
 
 To make the active queries from IRC work, you'll also have to set up an `icli`
