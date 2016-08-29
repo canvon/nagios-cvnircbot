@@ -31,6 +31,8 @@ This README contains: (**Table of Contents**)
 
     * [Log rotation and how to work-around it](#log-rotation)
 
+  * [Thanks](#thanks)
+
   * [Contact information](#contact)
 
 
