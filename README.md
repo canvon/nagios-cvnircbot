@@ -1,6 +1,7 @@
 
 # nagios-cvnircbot
-canvon IRC bot for monitoring Nagios monitoring
+
+__canvon IRC bot for monitoring Nagios monitoring__
 
 > Send Nagios log messages to IRC, and let Nagios status be queried actively
 > from IRC
