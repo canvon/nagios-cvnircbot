@@ -45,12 +45,12 @@ is left as an exercise to the reader.
 
 ## Contact
 
-The _nagios-cvnircbot_, canvon IRC bot for monitoring Nagios monitoring, has
+The **nagios-cvnircbot**, canvon IRC bot for monitoring Nagios monitoring, has
 been written by:
 
-  Fabian Pietsch <fabian-cvnircbot@canvon.de>  (primary author from 2015-2016)
+  * Fabian Pietsch <fabian-cvnircbot@canvon.de>  (primary author from 2015-2016)
 
 The project is currently (as of 2016-08-29) hosted on GitHub:
 
-  https://github.com/canvon/nagios-cvnircbot
+  * https://github.com/canvon/nagios-cvnircbot
 
