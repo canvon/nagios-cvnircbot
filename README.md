@@ -85,6 +85,13 @@ It will come back automatically after the timeout you set on the
 command line above expires.
 
 
+## Thanks
+
+Thanks go to ArneB <http://www.arneb.de/>, for explaining
+how _non-blocking I/O_ might be used to poll a log file
+from a Perl IRC bot.
+
+
 ## Contact
 
 The **nagios-cvnircbot**, canvon IRC bot for monitoring Nagios monitoring, has
