@@ -19,12 +19,33 @@ There are further commands, address the bot saying "help" to get a short
 overview.
 
 
+## ToC
+
+This README contains: (**Table of Contents**)
+
+  * [Setup instructions](#setup)
+
+    * [Basic setup instructions](#basic-setup)
+
+    * [Bot commands and how to make them work](#bot-commands)
+
+    * [Log rotation and how to work-around it](#log-rotation)
+
+  * [Thanks](#thanks)
+
+  * [Contact information](#contact)
+
+
 ## Setup
+
+### Basic setup
 
 You can run the bot right from the git repository, as `./cvnircbot.pl`; but you
 have to copy the `example-cvnircbotrc` to `~/.cvnircbot/cvnircbotrc` first, and
 edit the file to set the IRC server to use, bot nickname, channel and other
 things.
+
+### Bot commands
 
 To make the active queries from IRC work, you'll also have to set up an `icli`
 that can be invoked by the bot to get data. In my case, this is a wrapper script
@@ -41,6 +62,36 @@ Save the two-liner to `~/bin/icli` and `chmod +x ~/bin/icli`. Giving
 password-less sudo permissions for group `www-data` (or what the webserver
 your Nagios web-frontend is running on uses) to the user the bot runs as
 is left as an exercise to the reader.
+
+### Log rotation
+
+The bot currently does not cope with Nagios' automatic log rotation.
+
+As a work-around, I recommend running the bot in a loop, like this:
+
+```
+nagios-cvnircbot$ while true ; do ./cvnircbot.pl ; sleep 600 ; done  # restart every 10 minutes
+```
+
+Then make it exit regularly from `cron`. In a per-user `crontab`,
+using `crontab -e` to edit and `crontab -l` to list:
+
+```
+# m h  dom mon dow   command
+2 0  1 * *   pkill cvnircbot.pl
+```
+
+This would make the bot exit on the 1st of each month, two minutes
+past mid-night. (This is just after my Nagios instance rotates its logs.)
+It will come back automatically after the timeout you set on the
+command line above expires.
+
+
+## Thanks
+
+Thanks go to ArneB <http://www.arneb.de/>, for explaining
+how _non-blocking I/O_ might be used to poll a log file
+from a Perl IRC bot.
 
 
 ## Contact
