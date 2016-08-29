@@ -19,6 +19,21 @@ There are further commands, address the bot saying "help" to get a short
 overview.
 
 
+## ToC
+
+This README contains: (**Table of Contents**)
+
+  * [Setup instructions](#setup)
+
+    * [Basic setup instructions](#basic-setup)
+
+    * [Bot commands and how to make them work](#bot-commands)
+
+    * [Log rotation and how to work-around it](#log-rotation)
+
+  * [Contact information](#contact)
+
+
 ## Setup
 
 ### Basic setup
