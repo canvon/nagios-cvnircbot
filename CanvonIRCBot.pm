@@ -326,6 +326,13 @@ sub said
 {
     my ($bot, $irc_msg) = @_;
 
+    my $pass_back = sub {
+        my ($line) = @_;
+        $bot->log_debug("Passing back line: $line");
+        $irc_msg->{body} = $line;
+        $bot->say(%{$irc_msg});
+    };
+
     # Say nothing unless we were addressed.
     return undef unless $irc_msg->{address};
 
@@ -333,7 +340,87 @@ sub said
 
     for ($irc_msg->{body})
     {
-        if (/^problems$/)
+        if (/^overview$/)
+        {
+            $bot->log_debug("Request for command 'overview'; starting icli...");
+
+            #my $result = `icli -C -xn -z'!o'`;
+            my $result = `icli -v -C -xn -o`;
+            my $oline_accum = '';
+            my $is_firstline = 1;
+            my $type;
+            foreach my $line (split(/\n/, $result))
+            {
+                if (length($line) == 0) {
+                    $pass_back->($oline_accum) unless length($oline_accum) == 0;
+                    $oline_accum = '';
+                    $is_firstline = 1;
+                    next;
+                }
+
+                if ($is_firstline) {
+                    return "Error parsing backend output! Total not found in first line."
+                      unless ($line =~ /^total\s+([a-z]+)\s+([0-9]+)$/);
+                    my $count;
+                    ($type, $count) = ($1, $2);
+
+                    $oline_accum = "Total $count $type:";
+                    $is_firstline = 0;
+                    next;
+                }
+
+                return "Error parsing backend output! Can't handle normal line..."
+                  unless ($line =~ /^([a-z]+)\s+([0-9]+)?$/);
+                my ($state, $count) = ($1, $2);
+
+                if (defined($count)) {
+                    $state =~ s/^(.*)$/\U$1/;  # up-case, from "ok" to "OK"
+
+                    my $color_state;
+                    if ($type eq 'hosts') {
+                        $color_state = colorize_hoststate($state);
+                    }
+                    elsif ($type eq 'services') {
+                        $color_state = colorize_servicestate($state);
+                    }
+                    else {
+                        $bot->log_debug("Invalid overview type \"$type\".");
+                        return "Error parsing backend output! This seems to be neither hosts nor services overview...";
+                    }
+
+                    # Insert count into colorized state.
+                    $color_state =~ s/^(\x03\d+,\d+)(.*)$/$1\x02\x02$count $2/;
+
+                    # Append to output line accumulator.
+                    $oline_accum .= " $color_state";
+                }
+            }
+            $pass_back->($oline_accum) if length($oline_accum);
+            $oline_accum = '';
+
+            $bot->log_debug("Done with processing command 'overview'.");
+            #return undef;
+            return "End of output of command 'overview'.";
+        }
+        elsif (/^overview hosts$/)
+        {
+            $bot->log_debug("Request for command 'overview hosts'; starting icli...");
+
+            my $result = `icli -v -C -xn -o -lh`;
+            foreach my $line (split(/\n/, $result))
+            {
+                next unless (length($line) >= 1);
+
+                # For now, simply pass on the icli output lines unmodified,
+                # and with no output size limiting...
+                $pass_back->($line);
+            }
+
+            $bot->log_debug("Done with processing command 'overview hosts'.");
+            #return undef;
+            return "End of output of command 'overview hosts'.";
+        }
+        elsif (/^problems$/)
         {
             $bot->log_debug("Request for command 'problems'; starting icli...");
 
@@ -345,9 +432,7 @@ sub said
 
                 # For now, simply pass on the icli output lines unmodified,
                 # and with no output size limiting...
-                $bot->log_debug("Passing back line: $line");
-                $irc_msg->{body} = $line;
-                $bot->say(%{$irc_msg});
+                $pass_back->($line);
             }
 
             $bot->log_debug("Done with processing command 'problems'.");
@@ -365,9 +450,7 @@ sub said
 
                 # For now, simply pass on the icli output lines unmodified,
                 # and with no output size limiting...
-                $bot->log_debug("Passing back line: $line");
-                $irc_msg->{body} = $line;
-                $bot->say(%{$irc_msg});
+                $pass_back->($line);
             }
 
             $bot->log_debug("Done with processing command 'problem hosts'.");
@@ -385,9 +468,7 @@ sub said
 
                 # For now, simply pass on the icli output lines unmodified,
                 # and with no output size limiting...
-                $bot->log_debug("Passing back line: $line");
-                $irc_msg->{body} = $line;
-                $bot->say(%{$irc_msg});
+                $pass_back->($line);
             }
 
             $bot->log_debug("Done with processing command 'downtimes'.");
@@ -413,9 +494,7 @@ sub said
 
                 # For now, simply pass on the icli output lines unmodified,
                 # and with no output size limiting...
-                $bot->log_debug("Passing back line: $line");
-                $irc_msg->{body} = $line;
-                $bot->say(%{$irc_msg});
+                $pass_back->($line);
             }
 
             $bot->log_debug("Done with processing command 'host'.");
@@ -441,9 +520,7 @@ sub said
 
                 # For now, simply pass on the icli output lines unmodified,
                 # and with no output size limiting...
-                $bot->log_debug("Passing back line: $line");
-                $irc_msg->{body} = $line;
-                $bot->say(%{$irc_msg});
+                $pass_back->($line);
             }
 
             $bot->log_debug("Done with processing command 'services on'.");
@@ -476,9 +553,7 @@ sub said
 
                 # For now, simply pass on the icli output lines unmodified,
                 # and with no output size limiting...
-                $bot->log_debug("Passing back line: $line");
-                $irc_msg->{body} = $line;
-                $bot->say(%{$irc_msg});
+                $pass_back->($line);
             }
 
             $bot->log_debug("Done with processing command 'service'.");
