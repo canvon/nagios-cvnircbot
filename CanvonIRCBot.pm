@@ -181,6 +181,34 @@ sub parse_nagios_log_line
     return $ret;
 }
 
+sub colorize_hoststate
+{
+	my ($state) = @_;
+
+	for ($state)
+	{
+		if    (/^UP$/)          { return "\x031,9$state\x0f"; }
+		#elsif (/^WARNING$/)     { return "\x031,8$state\x0f"; }
+		elsif (/^DOWN$/)        { return "\x030,4$state\x0f"; }
+		elsif (/^UNREACHABLE$/) { return "\x030,12$state\x0f"; }
+		else                    { return "\x030,14$state\x0f"; }
+	}
+}
+
+sub colorize_servicestate
+{
+	my ($state) = @_;
+
+	for ($state)
+	{
+		if    (/^OK$/)       { return "\x031,9$state\x0f"; }
+		elsif (/^WARNING$/)  { return "\x031,8$state\x0f"; }
+		elsif (/^CRITICAL$/) { return "\x030,4$state\x0f"; }
+		elsif (/^UNKNOWN$/)  { return "\x030,12$state\x0f"; }
+		else                 { return "\x030,14$state\x0f"; }
+	}
+}
+
 sub tick
 {
     my ($bot) = @_;
@@ -226,7 +254,7 @@ sub tick
                 {
                     $out .= $msg->{data}{CONTACTNAME}.": ** Host Alert: " .
                             $msg->{data}{HOSTNAME}." is ".
-                            $msg->{data}{HOSTSTATE}." **  ".
+                            colorize_hoststate($msg->{data}{HOSTSTATE})." **  ".
                             "Info: ".$msg->{data}{HOSTOUTPUT}."  ".
                             "Date/Time: ".localtime($msg->{timestamp});
                     $out_public = 1;
@@ -236,7 +264,7 @@ sub tick
                     $out .= $msg->{data}{CONTACTNAME}.": ** Service Alert: " .
                             $msg->{data}{HOSTNAME}."/".
                             $msg->{data}{SERVICEDESC}." is ".
-                            $msg->{data}{SERVICESTATE}." **  ".
+                            colorize_servicestate($msg->{data}{SERVICESTATE})." **  ".
                             "Info: ".$msg->{data}{SERVICEOUTPUT}."  ".
                             "Date/Time: ".localtime($msg->{timestamp});
                     $out_public = 1;
