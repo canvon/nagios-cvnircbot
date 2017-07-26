@@ -209,6 +209,13 @@ sub colorize_servicestate
 	}
 }
 
+sub colorize_datetime
+{
+	my ($datetime) = @_;
+
+	return "\x0314,1$datetime\x0f";
+}
+
 sub tick
 {
     my ($bot) = @_;
@@ -256,7 +263,7 @@ sub tick
                             $msg->{data}{HOSTNAME}." is ".
                             colorize_hoststate($msg->{data}{HOSTSTATE})." **  ".
                             "Info: ".$msg->{data}{HOSTOUTPUT}."  ".
-                            "Date/Time: ".localtime($msg->{timestamp});
+                            colorize_datetime("Date/Time: ".localtime($msg->{timestamp}));
                     $out_public = 1;
                 }
                 elsif ($msg->{type} eq 'SERVICE NOTIFICATION')
@@ -266,7 +273,7 @@ sub tick
                             $msg->{data}{SERVICEDESC}." is ".
                             colorize_servicestate($msg->{data}{SERVICESTATE})." **  ".
                             "Info: ".$msg->{data}{SERVICEOUTPUT}."  ".
-                            "Date/Time: ".localtime($msg->{timestamp});
+                            colorize_datetime("Date/Time: ".localtime($msg->{timestamp}));
                     $out_public = 1;
                 }
                 elsif ($msg->{type} eq 'HOST ALERT')
@@ -276,7 +283,7 @@ sub tick
                             ", type ".$msg->{data}{HOSTSTATETYPE}.
                             " (".$msg->{data}{HOSTATTEMPT}.
                             "):  Info: ".$msg->{data}{HOSTOUTPUT}.
-                            "  Date/Time: ".localtime($msg->{timestamp});
+                            "  ".colorize_datetime("Date/Time: ".localtime($msg->{timestamp}));
                 }
                 elsif ($msg->{type} eq 'SERVICE ALERT')
                 {
@@ -286,7 +293,7 @@ sub tick
                             ", type ".$msg->{data}{SERVICESTATETYPE}.
                             " (".$msg->{data}{SERVICEATTEMPT}.
                             "):  Info: ".$msg->{data}{SERVICEOUTPUT}.
-                            "  Date/Time: ".localtime($msg->{timestamp});
+                            "  ".colorize_datetime("Date/Time: ".localtime($msg->{timestamp}));
                 }
             }
             else
