@@ -213,7 +213,7 @@ sub colorize_datetime
 {
 	my ($datetime) = @_;
 
-	return "\x0314,1$datetime\x0f";
+	return "\x0314$datetime\x0f";
 }
 
 sub tick
