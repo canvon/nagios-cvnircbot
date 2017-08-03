@@ -64,6 +64,12 @@ sub init
         );
     };
     $SIG{__DIE__} = sub {
+        # Don't fire in evals .. unless it was our own code that resulted in error.
+        # (It seems that the surrounding logic calls our code in eval { ... },
+        # gives a die()'s message to warn() in case of error and then
+        # exits *cleanly*... We don't want that.)
+        die @_ if $^S && caller() ne 'CanvonIRCBot';
+
         my $flag = 0;
         my @newargs = map { my $str = $_; chomp($str); split(/\n/, $str) } @_;
         $bot->log_crit(
