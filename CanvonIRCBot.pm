@@ -76,7 +76,10 @@ sub init
             map { ($flag++ ? "Error continues: " : "Dying on error: ").$_ } @newargs
         );
         $bot->shutdown("Died on error!");
-        exit(1);
+        #exit(1);
+        # ^ (We can't exit immediately, as we want the quit message
+        #   to be passed to IRC. With the immediate exit, the IRC server
+        #   only gives "Read error: Connection reset by peer".)
     };
 
     $bot->{nagios_msg_ignore_external_command} = [
