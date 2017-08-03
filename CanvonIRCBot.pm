@@ -102,7 +102,7 @@ sub parse_nagios_log_line
     unless ($line =~ /^\[([0-9]+)\] (.*)$/)
     {
         $bot->log_warning("Couldn't parse Nagios log line into time stamp and rest.");
-        $bot->log_warning("Log line was: $line");
+        $bot->log_warning("Log line was: \"".escape_nonprints($line)."\"");
         return $ret;
     }
 
@@ -116,7 +116,7 @@ sub parse_nagios_log_line
     {
         $bot->log_debug("Non-data Nagios message ("
                        .localtime($ret->{timestamp})
-                       ."): ".$ret->{full_msg});
+                       ."): ".escape_nonprints($ret->{full_msg}));
         return $ret;
     }
 
@@ -178,7 +178,7 @@ sub parse_nagios_log_line
         $bot->log_debug("Unrecognized data Nagios message ("
                        .localtime($ret->{timestamp})
                        ."): type=\"".$ret->{type}."\", raw data: "
-                       .$ret->{raw_data});
+                       .escape_nonprints($ret->{raw_data}));
     }
     #else
     #{
@@ -226,6 +226,17 @@ sub colorize_datetime
 	return "\x0314$datetime\x0f";
 }
 
+sub escape_nonprints
+{
+	my ($str) = @_;
+
+	$str =~ s/\\/\\\\/g;
+	$str =~ s/([\x01-\x1a])/"^".chr(ord('A') - 1 + ord($1))/eg;
+	$str =~ s/([\x00-\x1f\x7f-\xff])/"\\x".sprintf("%02x", ord($1))/eg;
+
+	return $str;
+}
+
 sub tick
 {
     my ($bot) = @_;
@@ -248,7 +259,7 @@ sub tick
         my $msg = $bot->parse_nagios_log_line($line);
         unless (defined($msg))
         {
-            $bot->log_err("Couldn't parse Nagios log line: $line");
+            $bot->log_err("Couldn't parse Nagios log line: \"".escape_nonprints($line)."\"");
             return $next_tick_secs;
         }
 
@@ -312,14 +323,14 @@ sub tick
             }
             else
             {
-                $bot->log_info("Not passing unknown/unwanted message on: $line");
+                $bot->log_info("Not passing unknown/unwanted message on: \"".escape_nonprints($line)."\"");
             }
 
             # Send the constructed line to the channel.
             # (But only if it has in fact been constructed.)
             if (length($out) >= 1)
             {
-                $bot->log_debug("Passing to $channel: $out");
+                $bot->log_debug("Passing to $channel: \"".escape_nonprints($out)."\"");
                 if ($out_public)
                 {
                     $bot->say(channel => $channel, body => $out);
@@ -342,7 +353,7 @@ sub said
 
     my $pass_back = sub {
         my ($line) = @_;
-        $bot->log_debug("Passing back line: $line");
+        $bot->log_debug("Passing back line: \"".escape_nonprints($line)."\"");
         $irc_msg->{body} = $line;
         $bot->say(%{$irc_msg});
     };
@@ -350,7 +361,7 @@ sub said
     # Say nothing unless we were addressed.
     return undef unless $irc_msg->{address};
 
-    $bot->log_debug("We were addressed! ".$irc_msg->{who}." said to us: ".$irc_msg->{body});
+    $bot->log_debug("We were addressed! ".$irc_msg->{who}." said to us: \"".escape_nonprints($irc_msg->{body})."\"");
 
     for ($irc_msg->{body})
     {
@@ -398,7 +409,7 @@ sub said
                         $color_state = colorize_servicestate($state);
                     }
                     else {
-                        $bot->log_warning("Invalid overview type \"$type\".");
+                        $bot->log_warning("Invalid overview type \"".escape_nonprints($type)."\".");
                         return "Error parsing backend output! This seems to be neither hosts nor services overview...";
                     }
 
@@ -496,7 +507,7 @@ sub said
             my $host = $1;
             unless ($host =~ /^[A-Za-z0-9.][-A-Za-z0-9.,]*$/)
             {
-                $bot->log_info("Invalid host: $host");
+                $bot->log_info("Invalid host: \"".escape_nonprints($host)."\"");
                 return "Invalid host.";
             }
 
@@ -522,7 +533,7 @@ sub said
             my $host = $1;
             unless ($host =~ /^[A-Za-z0-9.][-A-Za-z0-9.,]*$/)
             {
-                $bot->log_info("Invalid host: $host");
+                $bot->log_info("Invalid host: \"".escape_nonprints($host)."\"");
                 return "Invalid host.";
             }
 
@@ -548,12 +559,12 @@ sub said
             my ($service, $host) = ($1, $2);
             unless (!defined($host) || $host =~ /^[A-Za-z0-9.][-A-Za-z0-9.,]*$/)
             {
-                $bot->log_info("Invalid host: $host");
+                $bot->log_info("Invalid host: \"".escape_nonprints($host)."\"");
                 return "Invalid host.";
             }
             unless ($service =~ m#^[A-Za-z0-9.][-A-Za-z0-9., /]*$#)
             {
-                $bot->log_info("Invalid service $service");
+                $bot->log_info("Invalid service: \"".escape_nonprints($service)."\"");
                 return "Invalid service.";
             }
 
@@ -576,7 +587,7 @@ sub said
         }
         else
         {
-            $bot->log_info("Unknown command `$_'.");
+            $bot->log_info("Unknown command \"".escape_nonprints($_)."\".");
             return "Unknown command.";
         }
     }
