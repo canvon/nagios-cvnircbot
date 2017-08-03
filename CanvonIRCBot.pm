@@ -57,20 +57,20 @@ sub init
     # (But don't tell the details to IRC! That might help someone
     # attacking the bot/system.)
     $SIG{__WARN__} = sub {
-	    my $flag = 0;
-	    my @newargs = map { my $str = $_; chomp($str); split(/\n/, $str) } @_;
-	    $bot->log_warning(
-		    map { ($flag++ ? "Warning continues: " : "Warning handler received warning: ").$_ } @newargs
-	    );
+        my $flag = 0;
+        my @newargs = map { my $str = $_; chomp($str); split(/\n/, $str) } @_;
+        $bot->log_warning(
+            map { ($flag++ ? "Warning continues: " : "Warning handler received warning: ").$_ } @newargs
+        );
     };
     $SIG{__DIE__} = sub {
-	    my $flag = 0;
-	    my @newargs = map { my $str = $_; chomp($str); split(/\n/, $str) } @_;
-	    $bot->log_crit(
-		    map { ($flag++ ? "Error continues: " : "Dying on error: ").$_ } @newargs
-	    );
-	    $bot->shutdown("Died on error!");
-	    exit(1);
+        my $flag = 0;
+        my @newargs = map { my $str = $_; chomp($str); split(/\n/, $str) } @_;
+        $bot->log_crit(
+            map { ($flag++ ? "Error continues: " : "Dying on error: ").$_ } @newargs
+        );
+        $bot->shutdown("Died on error!");
+        exit(1);
     };
 
     $bot->{nagios_msg_ignore_external_command} = [
@@ -216,48 +216,48 @@ sub parse_nagios_log_line
 
 sub colorize_hoststate
 {
-	my ($state) = @_;
+    my ($state) = @_;
 
-	for ($state)
-	{
-		if    (/^UP$/)          { return "\x031,9$state\x0f"; }
-		#elsif (/^WARNING$/)     { return "\x031,8$state\x0f"; }
-		elsif (/^DOWN$/)        { return "\x030,4$state\x0f"; }
-		elsif (/^UNREACHABLE$/) { return "\x030,12$state\x0f"; }
-		else                    { return "\x030,14$state\x0f"; }
-	}
+    for ($state)
+    {
+        if    (/^UP$/)          { return "\x031,9$state\x0f"; }
+        #elsif (/^WARNING$/)     { return "\x031,8$state\x0f"; }
+        elsif (/^DOWN$/)        { return "\x030,4$state\x0f"; }
+        elsif (/^UNREACHABLE$/) { return "\x030,12$state\x0f"; }
+        else                    { return "\x030,14$state\x0f"; }
+    }
 }
 
 sub colorize_servicestate
 {
-	my ($state) = @_;
+    my ($state) = @_;
 
-	for ($state)
-	{
-		if    (/^OK$/)       { return "\x031,9$state\x0f"; }
-		elsif (/^WARNING$/)  { return "\x031,8$state\x0f"; }
-		elsif (/^CRITICAL$/) { return "\x030,4$state\x0f"; }
-		elsif (/^UNKNOWN$/)  { return "\x030,12$state\x0f"; }
-		else                 { return "\x030,14$state\x0f"; }
-	}
+    for ($state)
+    {
+        if    (/^OK$/)       { return "\x031,9$state\x0f"; }
+        elsif (/^WARNING$/)  { return "\x031,8$state\x0f"; }
+        elsif (/^CRITICAL$/) { return "\x030,4$state\x0f"; }
+        elsif (/^UNKNOWN$/)  { return "\x030,12$state\x0f"; }
+        else                 { return "\x030,14$state\x0f"; }
+    }
 }
 
 sub colorize_datetime
 {
-	my ($datetime) = @_;
+    my ($datetime) = @_;
 
-	return "\x0314$datetime\x0f";
+    return "\x0314$datetime\x0f";
 }
 
 sub escape_nonprints
 {
-	my ($str) = @_;
+    my ($str) = @_;
 
-	$str =~ s/\\/\\\\/g;
-	$str =~ s/([\x01-\x1a])/"^".chr(ord('A') - 1 + ord($1))/eg;
-	$str =~ s/([\x00-\x1f\x7f-\xff])/"\\x".sprintf("%02x", ord($1))/eg;
+    $str =~ s/\\/\\\\/g;
+    $str =~ s/([\x01-\x1a])/"^".chr(ord('A') - 1 + ord($1))/eg;
+    $str =~ s/([\x00-\x1f\x7f-\xff])/"\\x".sprintf("%02x", ord($1))/eg;
 
-	return $str;
+    return $str;
 }
 
 sub tick
@@ -294,10 +294,10 @@ sub tick
 
         # Got a log line, pass it on to the configured channels.
         $bot->log_info("Got a Nagios log message".
-		" (is_data=".$msg->{is_data}.
-		", type_recognized=".$msg->{type_recognized}.
-		", type=\"".$msg->{type}."\")".
-		", passing it on to configured channels...");
+            " (is_data=".$msg->{is_data}.
+            ", type_recognized=".$msg->{type_recognized}.
+            ", type=\"".$msg->{type}."\")".
+            ", passing it on to configured channels...");
         foreach my $channel (@{$bot->{nagios_channels}})
         {
             my $out = '';
