@@ -52,6 +52,27 @@ sub init
 {
     my ($bot) = @_;
 
+    # Have some warn()/die() handlers to present the situation better
+    # to logging. In case of dying on error, also tell the fact to IRC.
+    # (But don't tell the details to IRC! That might help someone
+    # attacking the bot/system.)
+    $SIG{__WARN__} = sub {
+	    my $flag = 0;
+	    my @newargs = map { my $str = $_; chomp($str); split(/\n/, $str) } @_;
+	    $bot->log_warning(
+		    map { ($flag++ ? "Warning continues: " : "Warning handler received warning: ").$_ } @newargs
+	    );
+    };
+    $SIG{__DIE__} = sub {
+	    my $flag = 0;
+	    my @newargs = map { my $str = $_; chomp($str); split(/\n/, $str) } @_;
+	    $bot->log_crit(
+		    map { ($flag++ ? "Error continues: " : "Dying on error: ").$_ } @newargs
+	    );
+	    $bot->shutdown("Died on error!");
+	    exit(1);
+    };
+
     $bot->{nagios_msg_ignore_external_command} = [
         'PROCESS_HOST_CHECK_RESULT',
         'PROCESS_SERVICE_CHECK_RESULT'
