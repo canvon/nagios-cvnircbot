@@ -25,8 +25,19 @@ sub log_debug
 {
     my $bot = shift(@_);
 
-    $bot->log(@_) if $bot->debug();
+    # $bot->log() will log every argument on a separate line,
+    # so we'll have to prefix each argument separately.
+    my @newargs = map { '<7>'.$_ } @_;
+    $bot->log(@newargs) if $bot->debug();
 }
+
+sub log_info    { my $bot = shift(@_); my @newargs = map { '<6>'.$_ } @_; $bot->log(@newargs); }
+sub log_notice  { my $bot = shift(@_); my @newargs = map { '<5>'.$_ } @_; $bot->log(@newargs); }
+sub log_warning { my $bot = shift(@_); my @newargs = map { '<4>'.$_ } @_; $bot->log(@newargs); }
+sub log_err     { my $bot = shift(@_); my @newargs = map { '<3>'.$_ } @_; $bot->log(@newargs); }
+sub log_crit    { my $bot = shift(@_); my @newargs = map { '<2>'.$_ } @_; $bot->log(@newargs); }
+sub log_alert   { my $bot = shift(@_); my @newargs = map { '<1>'.$_ } @_; $bot->log(@newargs); }
+sub log_emerg   { my $bot = shift(@_); my @newargs = map { '<0>'.$_ } @_; $bot->log(@newargs); }
 
 sub get_nagios_logfile
 {
@@ -40,6 +51,36 @@ sub get_nagios_logfile
 sub init
 {
     my ($bot) = @_;
+
+    # Have some warn()/die() handlers to present the situation better
+    # to logging. In case of dying on error, also tell the fact to IRC.
+    # (But don't tell the details to IRC! That might help someone
+    # attacking the bot/system.)
+    $SIG{__WARN__} = sub {
+        my $flag = 0;
+        my @newargs = map { my $str = $_; chomp($str); split(/\n/, $str) } @_;
+        $bot->log_warning(
+            map { ($flag++ ? "Warning continues: " : "Warning handler received warning: ").$_ } @newargs
+        );
+    };
+    $SIG{__DIE__} = sub {
+        # Don't fire in evals .. unless it was our own code that resulted in error.
+        # (It seems that the surrounding logic calls our code in eval { ... },
+        # gives a die()'s message to warn() in case of error and then
+        # exits *cleanly*... We don't want that.)
+        die @_ if $^S && caller() ne 'CanvonIRCBot';
+
+        my $flag = 0;
+        my @newargs = map { my $str = $_; chomp($str); split(/\n/, $str) } @_;
+        $bot->log_crit(
+            map { ($flag++ ? "Error continues: " : "Dying on error: ").$_ } @newargs
+        );
+        $bot->shutdown("Died on error!");
+        #exit(1);
+        # ^ (We can't exit immediately, as we want the quit message
+        #   to be passed to IRC. With the immediate exit, the IRC server
+        #   only gives "Read error: Connection reset by peer".)
+    };
 
     $bot->{nagios_msg_ignore_external_command} = [
         'PROCESS_HOST_CHECK_RESULT',
@@ -57,7 +98,7 @@ sub init
 
     my $nagios_logfile = $bot->get_nagios_logfile();
 
-    $bot->log_debug("Opening Nagios log file: $nagios_logfile");
+    $bot->log_notice("Opening Nagios log file: $nagios_logfile");
     open(my $fh, '<', $nagios_logfile) or die("Can't open Nagios log file $nagios_logfile: $!\n");
 
     # Put the file handle into the bot state.
@@ -72,7 +113,7 @@ sub init
     $fh->blocking(0) or die("Can't set Nagios log file file handle to non-blocking IO: $!\n");
 
     # Everything went well so far.
-    $bot->log_debug("Init succeeded.");
+    $bot->log_notice("Init succeeded.");
     return 1;
 }
 
@@ -92,7 +133,8 @@ sub parse_nagios_log_line
 
     unless ($line =~ /^\[([0-9]+)\] (.*)$/)
     {
-        $bot->log("Couldn't parse Nagios log line into time stamp and rest.");
+        $bot->log_warning("Couldn't parse Nagios log line into time stamp and rest.");
+        $bot->log_warning("Log line was: \"".escape_nonprints($line)."\"");
         return $ret;
     }
 
@@ -106,7 +148,7 @@ sub parse_nagios_log_line
     {
         $bot->log_debug("Non-data Nagios message ("
                        .localtime($ret->{timestamp})
-                       ."): ".$ret->{full_msg});
+                       ."): ".escape_nonprints($ret->{full_msg}));
         return $ret;
     }
 
@@ -168,7 +210,7 @@ sub parse_nagios_log_line
         $bot->log_debug("Unrecognized data Nagios message ("
                        .localtime($ret->{timestamp})
                        ."): type=\"".$ret->{type}."\", raw data: "
-                       .$ret->{raw_data});
+                       .escape_nonprints($ret->{raw_data}));
     }
     #else
     #{
@@ -181,6 +223,52 @@ sub parse_nagios_log_line
     return $ret;
 }
 
+sub colorize_hoststate
+{
+    my ($state) = @_;
+
+    for ($state)
+    {
+        if    (/^UP$/)          { return "\x031,9$state\x0f"; }
+        #elsif (/^WARNING$/)     { return "\x031,8$state\x0f"; }
+        elsif (/^DOWN$/)        { return "\x030,4$state\x0f"; }
+        elsif (/^UNREACHABLE$/) { return "\x030,12$state\x0f"; }
+        else                    { return "\x030,14$state\x0f"; }
+    }
+}
+
+sub colorize_servicestate
+{
+    my ($state) = @_;
+
+    for ($state)
+    {
+        if    (/^OK$/)       { return "\x031,9$state\x0f"; }
+        elsif (/^WARNING$/)  { return "\x031,8$state\x0f"; }
+        elsif (/^CRITICAL$/) { return "\x030,4$state\x0f"; }
+        elsif (/^UNKNOWN$/)  { return "\x030,12$state\x0f"; }
+        else                 { return "\x030,14$state\x0f"; }
+    }
+}
+
+sub colorize_datetime
+{
+    my ($datetime) = @_;
+
+    return "\x0314$datetime\x0f";
+}
+
+sub escape_nonprints
+{
+    my ($str) = @_;
+
+    $str =~ s/\\/\\\\/g;
+    $str =~ s/([\x01-\x1a])/"^".chr(ord('A') - 1 + ord($1))/eg;
+    $str =~ s/([\x00-\x1f\x7f-\xff])/"\\x".sprintf("%02x", ord($1))/eg;
+
+    return $str;
+}
+
 sub tick
 {
     my ($bot) = @_;
@@ -190,7 +278,7 @@ sub tick
     my $fh = $bot->{nagios_logfile_fh};
     unless ($fh)
     {
-        $bot->log("Couldn't get Nagios log file file handle!");
+        $bot->log_err("Couldn't get Nagios log file file handle!");
         return $next_tick_secs;
     }
 
@@ -203,7 +291,7 @@ sub tick
         my $msg = $bot->parse_nagios_log_line($line);
         unless (defined($msg))
         {
-            $bot->log("Couldn't parse Nagios log line: $line");
+            $bot->log_err("Couldn't parse Nagios log line: \"".escape_nonprints($line)."\"");
             return $next_tick_secs;
         }
 
@@ -214,7 +302,11 @@ sub tick
         }
 
         # Got a log line, pass it on to the configured channels.
-        $bot->log_debug("Got a Nagios log message, passing it on to configured channels...");
+        $bot->log_info("Got a Nagios log message".
+            " (is_data=".$msg->{is_data}.
+            ", type_recognized=".$msg->{type_recognized}.
+            ", type=\"".$msg->{type}."\")".
+            ", passing it on to configured channels...");
         foreach my $channel (@{$bot->{nagios_channels}})
         {
             my $out = '';
@@ -226,9 +318,9 @@ sub tick
                 {
                     $out .= $msg->{data}{CONTACTNAME}.": ** Host Alert: " .
                             $msg->{data}{HOSTNAME}." is ".
-                            $msg->{data}{HOSTSTATE}." **  ".
+                            colorize_hoststate($msg->{data}{HOSTSTATE})." **  ".
                             "Info: ".$msg->{data}{HOSTOUTPUT}."  ".
-                            "Date/Time: ".localtime($msg->{timestamp});
+                            colorize_datetime("Date/Time: ".localtime($msg->{timestamp}));
                     $out_public = 1;
                 }
                 elsif ($msg->{type} eq 'SERVICE NOTIFICATION')
@@ -236,9 +328,9 @@ sub tick
                     $out .= $msg->{data}{CONTACTNAME}.": ** Service Alert: " .
                             $msg->{data}{HOSTNAME}."/".
                             $msg->{data}{SERVICEDESC}." is ".
-                            $msg->{data}{SERVICESTATE}." **  ".
+                            colorize_servicestate($msg->{data}{SERVICESTATE})." **  ".
                             "Info: ".$msg->{data}{SERVICEOUTPUT}."  ".
-                            "Date/Time: ".localtime($msg->{timestamp});
+                            colorize_datetime("Date/Time: ".localtime($msg->{timestamp}));
                     $out_public = 1;
                 }
                 elsif ($msg->{type} eq 'HOST ALERT')
@@ -248,7 +340,7 @@ sub tick
                             ", type ".$msg->{data}{HOSTSTATETYPE}.
                             " (".$msg->{data}{HOSTATTEMPT}.
                             "):  Info: ".$msg->{data}{HOSTOUTPUT}.
-                            "  Date/Time: ".localtime($msg->{timestamp});
+                            "  ".colorize_datetime("Date/Time: ".localtime($msg->{timestamp}));
                 }
                 elsif ($msg->{type} eq 'SERVICE ALERT')
                 {
@@ -258,19 +350,19 @@ sub tick
                             ", type ".$msg->{data}{SERVICESTATETYPE}.
                             " (".$msg->{data}{SERVICEATTEMPT}.
                             "):  Info: ".$msg->{data}{SERVICEOUTPUT}.
-                            "  Date/Time: ".localtime($msg->{timestamp});
+                            "  ".colorize_datetime("Date/Time: ".localtime($msg->{timestamp}));
                 }
             }
             else
             {
-                $bot->log_debug("Not passing unknown/unwanted message on: $line");
+                $bot->log_info("Not passing unknown/unwanted message on: \"".escape_nonprints($line)."\"");
             }
 
             # Send the constructed line to the channel.
             # (But only if it has in fact been constructed.)
             if (length($out) >= 1)
             {
-                $bot->log_debug("Passing to $channel: $out");
+                $bot->log_debug("Passing to $channel: \"".escape_nonprints($out)."\"");
                 if ($out_public)
                 {
                     $bot->say(channel => $channel, body => $out);
@@ -291,16 +383,103 @@ sub said
 {
     my ($bot, $irc_msg) = @_;
 
+    my $pass_back = sub {
+        my ($line) = @_;
+        $bot->log_debug("Passing back line: \"".escape_nonprints($line)."\"");
+        $irc_msg->{body} = $line;
+        $bot->say(%{$irc_msg});
+    };
+
     # Say nothing unless we were addressed.
     return undef unless $irc_msg->{address};
 
-    $bot->log_debug("We were addressed! ".$irc_msg->{who}." said to us: ".$irc_msg->{body});
+    $bot->log_debug("We were addressed! ".$irc_msg->{who}." said to us: \"".escape_nonprints($irc_msg->{body})."\"");
 
     for ($irc_msg->{body})
     {
-        if (/^problems$/)
+        if (/^overview$/)
         {
-            $bot->log_debug("Request for command 'problems'; starting icli...");
+            $bot->log_info("Request for command 'overview'; starting icli...");
+
+            #my $result = `icli -C -xn -z'!o'`;
+            my $result = `icli -v -C -xn -o`;
+            my $oline_accum = '';
+            my $is_firstline = 1;
+            my $type;
+            foreach my $line (split(/\n/, $result))
+            {
+                if (length($line) == 0) {
+                    $pass_back->($oline_accum) unless length($oline_accum) == 0;
+                    $oline_accum = '';
+                    $is_firstline = 1;
+                    next;
+                }
+
+                if ($is_firstline) {
+                    return "Error parsing backend output! Total not found in first line."
+                      unless ($line =~ /^total\s+([a-z]+)\s+([0-9]+)$/);
+                    my $count;
+                    ($type, $count) = ($1, $2);
+
+                    $oline_accum = "Total $count $type:";
+                    $is_firstline = 0;
+                    next;
+                }
+
+                return "Error parsing backend output! Can't handle normal line..."
+                  unless ($line =~ /^([a-z]+)\s+([0-9]+)?$/);
+                my ($state, $count) = ($1, $2);
+
+                if (defined($count)) {
+                    $state =~ s/^(.*)$/\U$1/;  # up-case, from "ok" to "OK"
+
+                    my $color_state;
+                    if ($type eq 'hosts') {
+                        $color_state = colorize_hoststate($state);
+                    }
+                    elsif ($type eq 'services') {
+                        $color_state = colorize_servicestate($state);
+                    }
+                    else {
+                        $bot->log_warning("Invalid overview type \"".escape_nonprints($type)."\".");
+                        return "Error parsing backend output! This seems to be neither hosts nor services overview...";
+                    }
+
+                    # Insert count into colorized state.
+                    $color_state =~ s/^(\x03\d+,\d+)(.*)$/$1\x02\x02$count $2/;
+
+                    # Append to output line accumulator.
+                    $oline_accum .= " $color_state";
+                }
+            }
+            $pass_back->($oline_accum) if length($oline_accum);
+            $oline_accum = '';
+
+            $bot->log_info("Done with processing command 'overview'.");
+            #return undef;
+            return "End of output of command 'overview'.";
+        }
+        elsif (/^overview hosts$/)
+        {
+            $bot->log_info("Request for command 'overview hosts'; starting icli...");
+
+            my $result = `icli -v -C -xn -o -lh`;
+            foreach my $line (split(/\n/, $result))
+            {
+                next unless (length($line) >= 1);
+
+                # For now, simply pass on the icli output lines unmodified,
+                # and with no output size limiting...
+                $pass_back->($line);
+            }
+
+            $bot->log_info("Done with processing command 'overview hosts'.");
+            #return undef;
+            return "End of output of command 'overview hosts'.";
+        }
+        elsif (/^problems$/)
+        {
+            $bot->log_info("Request for command 'problems'; starting icli...");
 
             #my $result = `icli -C -xn -z'!o'`;
             my $result = `icli -v -C -xn -z'!o'`;
@@ -310,18 +489,16 @@ sub said
 
                 # For now, simply pass on the icli output lines unmodified,
                 # and with no output size limiting...
-                $bot->log_debug("Passing back line: $line");
-                $irc_msg->{body} = $line;
-                $bot->say(%{$irc_msg});
+                $pass_back->($line);
             }
 
-            $bot->log_debug("Done with processing command 'problems'.");
+            $bot->log_info("Done with processing command 'problems'.");
             #return undef;
             return "End of output of command 'problems'.";
         }
         elsif (/^problem hosts$/)
         {
-            $bot->log_debug("Request for command 'problem hosts'; starting icli...");
+            $bot->log_info("Request for command 'problem hosts'; starting icli...");
 
             my $result = `icli -v -C -xn -lh -z'!o'`;
             foreach my $line (split(/\n/, $result))
@@ -330,18 +507,16 @@ sub said
 
                 # For now, simply pass on the icli output lines unmodified,
                 # and with no output size limiting...
-                $bot->log_debug("Passing back line: $line");
-                $irc_msg->{body} = $line;
-                $bot->say(%{$irc_msg});
+                $pass_back->($line);
             }
 
-            $bot->log_debug("Done with processing command 'problem hosts'.");
+            $bot->log_info("Done with processing command 'problem hosts'.");
             #return undef;
             return "End of output of command 'problem hosts'.";
         }
         elsif (/^downtimes$/)
         {
-            $bot->log_debug("Request for command 'downtimes'; starting icli...");
+            $bot->log_info("Request for command 'downtimes'; starting icli...");
 
             my $result = `icli -v -C -xn -ld`;
             foreach my $line (split(/\n/, $result))
@@ -350,23 +525,21 @@ sub said
 
                 # For now, simply pass on the icli output lines unmodified,
                 # and with no output size limiting...
-                $bot->log_debug("Passing back line: $line");
-                $irc_msg->{body} = $line;
-                $bot->say(%{$irc_msg});
+                $pass_back->($line);
             }
 
-            $bot->log_debug("Done with processing command 'downtimes'.");
+            $bot->log_info("Done with processing command 'downtimes'.");
             #return undef;
             return "End of output of command 'downtimes'.";
         }
         elsif (/^host\s+(\S+)\s*$/)
         {
-            $bot->log_debug("Request for command 'host'");
+            $bot->log_info("Request for command 'host'");
 
             my $host = $1;
             unless ($host =~ /^[A-Za-z0-9.][-A-Za-z0-9.,]*$/)
             {
-                $bot->log_debug("Invalid host: $host");
+                $bot->log_info("Invalid host: \"".escape_nonprints($host)."\"");
                 return "Invalid host.";
             }
 
@@ -378,23 +551,21 @@ sub said
 
                 # For now, simply pass on the icli output lines unmodified,
                 # and with no output size limiting...
-                $bot->log_debug("Passing back line: $line");
-                $irc_msg->{body} = $line;
-                $bot->say(%{$irc_msg});
+                $pass_back->($line);
             }
 
-            $bot->log_debug("Done with processing command 'host'.");
+            $bot->log_info("Done with processing command 'host'.");
             #return undef;
             return "End of output of command 'host'.";
         }
         elsif (/^services\s+on\s+(\S+)\s*$/)
         {
-            $bot->log_debug("Request for command 'services on'");
+            $bot->log_info("Request for command 'services on'");
 
             my $host = $1;
             unless ($host =~ /^[A-Za-z0-9.][-A-Za-z0-9.,]*$/)
             {
-                $bot->log_debug("Invalid host: $host");
+                $bot->log_info("Invalid host: \"".escape_nonprints($host)."\"");
                 return "Invalid host.";
             }
 
@@ -406,28 +577,26 @@ sub said
 
                 # For now, simply pass on the icli output lines unmodified,
                 # and with no output size limiting...
-                $bot->log_debug("Passing back line: $line");
-                $irc_msg->{body} = $line;
-                $bot->say(%{$irc_msg});
+                $pass_back->($line);
             }
 
-            $bot->log_debug("Done with processing command 'services on'.");
+            $bot->log_info("Done with processing command 'services on'.");
             #return undef;
             return "End of output of command 'services on'.";
         }
         elsif (/^service\s+(\S.*?\S)(?:\s+on\s+(\S+))?\s*$/)
         {
-            $bot->log_debug("Request for command 'service'");
+            $bot->log_info("Request for command 'service'");
 
             my ($service, $host) = ($1, $2);
             unless (!defined($host) || $host =~ /^[A-Za-z0-9.][-A-Za-z0-9.,]*$/)
             {
-                $bot->log_debug("Invalid host: $host");
+                $bot->log_info("Invalid host: \"".escape_nonprints($host)."\"");
                 return "Invalid host.";
             }
             unless ($service =~ m#^[A-Za-z0-9.][-A-Za-z0-9., /]*$#)
             {
-                $bot->log_debug("Invalid service $service");
+                $bot->log_info("Invalid service: \"".escape_nonprints($service)."\"");
                 return "Invalid service.";
             }
 
@@ -441,24 +610,22 @@ sub said
 
                 # For now, simply pass on the icli output lines unmodified,
                 # and with no output size limiting...
-                $bot->log_debug("Passing back line: $line");
-                $irc_msg->{body} = $line;
-                $bot->say(%{$irc_msg});
+                $pass_back->($line);
             }
 
-            $bot->log_debug("Done with processing command 'service'.");
+            $bot->log_info("Done with processing command 'service'.");
             #return undef;
             return "End of output of command 'service'.";
         }
         else
         {
-            $bot->log_debug("Unknown command `$_'.");
+            $bot->log_info("Unknown command \"".escape_nonprints($_)."\".");
             return "Unknown command.";
         }
     }
 
     # Say nothing, if we should get here.
-    $bot->log_debug("Saying nothing as fallback.");
+    $bot->log_notice("Saying nothing as fallback.");
     return undef;
 }
 
