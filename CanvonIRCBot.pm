@@ -25,17 +25,19 @@ sub log_debug
 {
     my $bot = shift(@_);
 
-    unshift(@_, '<7>'.shift(@_));
-    $bot->log(@_) if $bot->debug();
+    # $bot->log() will log every argument on a separate line,
+    # so we'll have to prefix each argument separately.
+    my @newargs = map { '<7>'.$_ } @_;
+    $bot->log(@newargs) if $bot->debug();
 }
 
-sub log_info    { my $bot = shift(@_); unshift(@_, '<6>'.shift(@_)); $bot->log(@_); }
-sub log_notice  { my $bot = shift(@_); unshift(@_, '<5>'.shift(@_)); $bot->log(@_); }
-sub log_warning { my $bot = shift(@_); unshift(@_, '<4>'.shift(@_)); $bot->log(@_); }
-sub log_err     { my $bot = shift(@_); unshift(@_, '<3>'.shift(@_)); $bot->log(@_); }
-sub log_crit    { my $bot = shift(@_); unshift(@_, '<2>'.shift(@_)); $bot->log(@_); }
-sub log_alert   { my $bot = shift(@_); unshift(@_, '<1>'.shift(@_)); $bot->log(@_); }
-sub log_emerg   { my $bot = shift(@_); unshift(@_, '<0>'.shift(@_)); $bot->log(@_); }
+sub log_info    { my $bot = shift(@_); my @newargs = map { '<6>'.$_ } @_; $bot->log(@newargs); }
+sub log_notice  { my $bot = shift(@_); my @newargs = map { '<5>'.$_ } @_; $bot->log(@newargs); }
+sub log_warning { my $bot = shift(@_); my @newargs = map { '<4>'.$_ } @_; $bot->log(@newargs); }
+sub log_err     { my $bot = shift(@_); my @newargs = map { '<3>'.$_ } @_; $bot->log(@newargs); }
+sub log_crit    { my $bot = shift(@_); my @newargs = map { '<2>'.$_ } @_; $bot->log(@newargs); }
+sub log_alert   { my $bot = shift(@_); my @newargs = map { '<1>'.$_ } @_; $bot->log(@newargs); }
+sub log_emerg   { my $bot = shift(@_); my @newargs = map { '<0>'.$_ } @_; $bot->log(@newargs); }
 
 sub get_nagios_logfile
 {
