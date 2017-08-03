@@ -66,7 +66,7 @@ sub init
 
     my $nagios_logfile = $bot->get_nagios_logfile();
 
-    $bot->log_debug("Opening Nagios log file: $nagios_logfile");
+    $bot->log_notice("Opening Nagios log file: $nagios_logfile");
     open(my $fh, '<', $nagios_logfile) or die("Can't open Nagios log file $nagios_logfile: $!\n");
 
     # Put the file handle into the bot state.
@@ -81,7 +81,7 @@ sub init
     $fh->blocking(0) or die("Can't set Nagios log file file handle to non-blocking IO: $!\n");
 
     # Everything went well so far.
-    $bot->log_debug("Init succeeded.");
+    $bot->log_notice("Init succeeded.");
     return 1;
 }
 
@@ -101,7 +101,8 @@ sub parse_nagios_log_line
 
     unless ($line =~ /^\[([0-9]+)\] (.*)$/)
     {
-        $bot->log("Couldn't parse Nagios log line into time stamp and rest.");
+        $bot->log_warning("Couldn't parse Nagios log line into time stamp and rest.");
+        $bot->log_warning("Log line was: $line");
         return $ret;
     }
 
@@ -234,7 +235,7 @@ sub tick
     my $fh = $bot->{nagios_logfile_fh};
     unless ($fh)
     {
-        $bot->log("Couldn't get Nagios log file file handle!");
+        $bot->log_err("Couldn't get Nagios log file file handle!");
         return $next_tick_secs;
     }
 
@@ -247,7 +248,7 @@ sub tick
         my $msg = $bot->parse_nagios_log_line($line);
         unless (defined($msg))
         {
-            $bot->log("Couldn't parse Nagios log line: $line");
+            $bot->log_err("Couldn't parse Nagios log line: $line");
             return $next_tick_secs;
         }
 
@@ -258,7 +259,11 @@ sub tick
         }
 
         # Got a log line, pass it on to the configured channels.
-        $bot->log_debug("Got a Nagios log message, passing it on to configured channels...");
+        $bot->log_info("Got a Nagios log message".
+		" (is_data=".$msg->{is_data}.
+		", type_recognized=".$msg->{type_recognized}.
+		", type=\"".$msg->{type}."\")".
+		", passing it on to configured channels...");
         foreach my $channel (@{$bot->{nagios_channels}})
         {
             my $out = '';
@@ -307,7 +312,7 @@ sub tick
             }
             else
             {
-                $bot->log_debug("Not passing unknown/unwanted message on: $line");
+                $bot->log_info("Not passing unknown/unwanted message on: $line");
             }
 
             # Send the constructed line to the channel.
@@ -351,7 +356,7 @@ sub said
     {
         if (/^overview$/)
         {
-            $bot->log_debug("Request for command 'overview'; starting icli...");
+            $bot->log_info("Request for command 'overview'; starting icli...");
 
             #my $result = `icli -C -xn -z'!o'`;
             my $result = `icli -v -C -xn -o`;
@@ -393,7 +398,7 @@ sub said
                         $color_state = colorize_servicestate($state);
                     }
                     else {
-                        $bot->log_debug("Invalid overview type \"$type\".");
+                        $bot->log_warning("Invalid overview type \"$type\".");
                         return "Error parsing backend output! This seems to be neither hosts nor services overview...";
                     }
 
@@ -407,13 +412,13 @@ sub said
             $pass_back->($oline_accum) if length($oline_accum);
             $oline_accum = '';
 
-            $bot->log_debug("Done with processing command 'overview'.");
+            $bot->log_info("Done with processing command 'overview'.");
             #return undef;
             return "End of output of command 'overview'.";
         }
         elsif (/^overview hosts$/)
         {
-            $bot->log_debug("Request for command 'overview hosts'; starting icli...");
+            $bot->log_info("Request for command 'overview hosts'; starting icli...");
 
             my $result = `icli -v -C -xn -o -lh`;
             foreach my $line (split(/\n/, $result))
@@ -425,13 +430,13 @@ sub said
                 $pass_back->($line);
             }
 
-            $bot->log_debug("Done with processing command 'overview hosts'.");
+            $bot->log_info("Done with processing command 'overview hosts'.");
             #return undef;
             return "End of output of command 'overview hosts'.";
         }
         elsif (/^problems$/)
         {
-            $bot->log_debug("Request for command 'problems'; starting icli...");
+            $bot->log_info("Request for command 'problems'; starting icli...");
 
             #my $result = `icli -C -xn -z'!o'`;
             my $result = `icli -v -C -xn -z'!o'`;
@@ -444,13 +449,13 @@ sub said
                 $pass_back->($line);
             }
 
-            $bot->log_debug("Done with processing command 'problems'.");
+            $bot->log_info("Done with processing command 'problems'.");
             #return undef;
             return "End of output of command 'problems'.";
         }
         elsif (/^problem hosts$/)
         {
-            $bot->log_debug("Request for command 'problem hosts'; starting icli...");
+            $bot->log_info("Request for command 'problem hosts'; starting icli...");
 
             my $result = `icli -v -C -xn -lh -z'!o'`;
             foreach my $line (split(/\n/, $result))
@@ -462,13 +467,13 @@ sub said
                 $pass_back->($line);
             }
 
-            $bot->log_debug("Done with processing command 'problem hosts'.");
+            $bot->log_info("Done with processing command 'problem hosts'.");
             #return undef;
             return "End of output of command 'problem hosts'.";
         }
         elsif (/^downtimes$/)
         {
-            $bot->log_debug("Request for command 'downtimes'; starting icli...");
+            $bot->log_info("Request for command 'downtimes'; starting icli...");
 
             my $result = `icli -v -C -xn -ld`;
             foreach my $line (split(/\n/, $result))
@@ -480,18 +485,18 @@ sub said
                 $pass_back->($line);
             }
 
-            $bot->log_debug("Done with processing command 'downtimes'.");
+            $bot->log_info("Done with processing command 'downtimes'.");
             #return undef;
             return "End of output of command 'downtimes'.";
         }
         elsif (/^host\s+(\S+)\s*$/)
         {
-            $bot->log_debug("Request for command 'host'");
+            $bot->log_info("Request for command 'host'");
 
             my $host = $1;
             unless ($host =~ /^[A-Za-z0-9.][-A-Za-z0-9.,]*$/)
             {
-                $bot->log_debug("Invalid host: $host");
+                $bot->log_info("Invalid host: $host");
                 return "Invalid host.";
             }
 
@@ -506,18 +511,18 @@ sub said
                 $pass_back->($line);
             }
 
-            $bot->log_debug("Done with processing command 'host'.");
+            $bot->log_info("Done with processing command 'host'.");
             #return undef;
             return "End of output of command 'host'.";
         }
         elsif (/^services\s+on\s+(\S+)\s*$/)
         {
-            $bot->log_debug("Request for command 'services on'");
+            $bot->log_info("Request for command 'services on'");
 
             my $host = $1;
             unless ($host =~ /^[A-Za-z0-9.][-A-Za-z0-9.,]*$/)
             {
-                $bot->log_debug("Invalid host: $host");
+                $bot->log_info("Invalid host: $host");
                 return "Invalid host.";
             }
 
@@ -532,23 +537,23 @@ sub said
                 $pass_back->($line);
             }
 
-            $bot->log_debug("Done with processing command 'services on'.");
+            $bot->log_info("Done with processing command 'services on'.");
             #return undef;
             return "End of output of command 'services on'.";
         }
         elsif (/^service\s+(\S.*?\S)(?:\s+on\s+(\S+))?\s*$/)
         {
-            $bot->log_debug("Request for command 'service'");
+            $bot->log_info("Request for command 'service'");
 
             my ($service, $host) = ($1, $2);
             unless (!defined($host) || $host =~ /^[A-Za-z0-9.][-A-Za-z0-9.,]*$/)
             {
-                $bot->log_debug("Invalid host: $host");
+                $bot->log_info("Invalid host: $host");
                 return "Invalid host.";
             }
             unless ($service =~ m#^[A-Za-z0-9.][-A-Za-z0-9., /]*$#)
             {
-                $bot->log_debug("Invalid service $service");
+                $bot->log_info("Invalid service $service");
                 return "Invalid service.";
             }
 
@@ -565,19 +570,19 @@ sub said
                 $pass_back->($line);
             }
 
-            $bot->log_debug("Done with processing command 'service'.");
+            $bot->log_info("Done with processing command 'service'.");
             #return undef;
             return "End of output of command 'service'.";
         }
         else
         {
-            $bot->log_debug("Unknown command `$_'.");
+            $bot->log_info("Unknown command `$_'.");
             return "Unknown command.";
         }
     }
 
     # Say nothing, if we should get here.
-    $bot->log_debug("Saying nothing as fallback.");
+    $bot->log_notice("Saying nothing as fallback.");
     return undef;
 }
 
