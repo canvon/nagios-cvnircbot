@@ -25,17 +25,17 @@ sub log_debug
 {
     my $bot = shift(@_);
 
-    $_[0] = '<7>'.$_[0];
+    unshift(@_, '<7>'.shift(@_));
     $bot->log(@_) if $bot->debug();
 }
 
-sub log_info    { my $bot = shift(@_); $_[0] = '<6>'.$_[0]; $bot->log(@_); }
-sub log_notice  { my $bot = shift(@_); $_[0] = '<5>'.$_[0]; $bot->log(@_); }
-sub log_warning { my $bot = shift(@_); $_[0] = '<4>'.$_[0]; $bot->log(@_); }
-sub log_err     { my $bot = shift(@_); $_[0] = '<3>'.$_[0]; $bot->log(@_); }
-sub log_crit    { my $bot = shift(@_); $_[0] = '<2>'.$_[0]; $bot->log(@_); }
-sub log_alert   { my $bot = shift(@_); $_[0] = '<1>'.$_[0]; $bot->log(@_); }
-sub log_emerg   { my $bot = shift(@_); $_[0] = '<0>'.$_[0]; $bot->log(@_); }
+sub log_info    { my $bot = shift(@_); unshift(@_, '<6>'.shift(@_)); $bot->log(@_); }
+sub log_notice  { my $bot = shift(@_); unshift(@_, '<5>'.shift(@_)); $bot->log(@_); }
+sub log_warning { my $bot = shift(@_); unshift(@_, '<4>'.shift(@_)); $bot->log(@_); }
+sub log_err     { my $bot = shift(@_); unshift(@_, '<3>'.shift(@_)); $bot->log(@_); }
+sub log_crit    { my $bot = shift(@_); unshift(@_, '<2>'.shift(@_)); $bot->log(@_); }
+sub log_alert   { my $bot = shift(@_); unshift(@_, '<1>'.shift(@_)); $bot->log(@_); }
+sub log_emerg   { my $bot = shift(@_); unshift(@_, '<0>'.shift(@_)); $bot->log(@_); }
 
 sub get_nagios_logfile
 {
