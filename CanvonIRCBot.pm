@@ -401,7 +401,10 @@ sub said
     # Say nothing unless we were addressed.
     return undef unless $irc_msg->{address};
 
-    $bot->log_debug("We were addressed! ".($irc_msg->{who} // "(Nobody, perhaps internal request)")." said to us: \"".escape_nonprints($irc_msg->{body})."\"");
+    $bot->log_debug("We were addressed! ".
+        ($irc_msg->{'address'} eq "join" ? "Join of " : "").
+        (exists $irc_msg->{who} ? $irc_msg->{who} : "(Nobody, possibly self)").
+        " said to us: \"".escape_nonprints($irc_msg->{body})."\"");
 
     for ($irc_msg->{body})
     {
@@ -640,10 +643,16 @@ sub said
 sub chanjoin {
     my ($bot, $irc_msg) = @_;
 
+    my $selfjoin = $irc_msg->{'who'} eq $bot->pocoirc->nick_name;
+
+    $bot->log_info("Channel join to " . $irc_msg->{'channel'} .
+        " by " . $irc_msg->{'who'} .
+        ($selfjoin ? " (self-join)" : ""));
+
     # Prepare internal request.
     #
     # On own (bot) join, noone shall get addressed.
-    delete $irc_msg->{'who'} if $irc_msg->{'who'} eq $bot->pocoirc->nick_name;
+    delete $irc_msg->{'who'} if $selfjoin;
     #
     # Signalize to "said" that this was due to a channel join.
     # (It'll switch form public channel message to channel notice, then.)
