@@ -629,6 +629,19 @@ sub said
     return undef;
 }
 
+sub chanjoin {
+    my ($bot, $irc_msg) = @_;
+
+    # FIXME
+    $bot->notice(channel => $irc_msg->{'channel'}, body => "\x0314" . $irc_msg->{'who'} . " joined");
+
+    return undef unless $irc_msg->{'who'} eq $bot->pocoirc->nick_name;
+
+    $bot->notice(channel => $irc_msg->{'channel'}, body => "(I guess that was me.)");
+
+    return undef;
+}
+
 sub help
 {
     return "Available commands: overview, overview hosts, problems, problem hosts, downtimes, host FOO,BAR,BAZ, services on FOO,BAR,BAZ, service MY SERVICE,ANOTHER SERVICE[ on HOST1,HOST2,HOST3]";
