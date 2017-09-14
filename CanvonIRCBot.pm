@@ -391,6 +391,15 @@ sub said
             # (Prevent Bot::BasicBot from generating an empty response address.)
             delete local $irc_msg->{'address'} unless exists $irc_msg->{'who'};
 
+            # Otherwise, try to prevent the "recipient"'s IRC client
+            # from generating a highlight.
+            #
+            # (Note: this cannot be combined with the exists test above,
+            # as then the local will fall out of scope before its use
+            # will have been needed!)
+            local $irc_msg->{'who'} = colorize_datetime($irc_msg->{'who'})
+              if exists $irc_msg->{'who'};
+
             # We're responding to a channel join. This is a rather automatic
             # action, so don't produce too much channel activity for it.
             # That is, use a notice.
