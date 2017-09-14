@@ -387,7 +387,10 @@ sub said
         my ($line) = @_;
         $bot->log_debug("Passing back line: \"".escape_nonprints($line)."\"");
         $irc_msg->{body} = $line;
-        if (($irc_msg->{'address'} // "") eq "join") {
+        if (exists $irc_msg->{'address'} && ($irc_msg->{'address'} // "") eq "join") {
+            # (Prevent Bot::BasicBot from generating an empty response address.)
+            delete local $irc_msg->{'address'} unless exists $irc_msg->{'who'};
+
             # We're responding to a channel join. This is a rather automatic
             # action, so don't produce too much channel activity for it.
             # That is, use a notice.
