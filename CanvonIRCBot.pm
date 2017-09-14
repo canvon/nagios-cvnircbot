@@ -631,7 +631,7 @@ sub said
 
 sub help
 {
-    return "Available commands: problems, problem hosts, downtimes, host FOO,BAR,BAZ, services on FOO,BAR,BAZ, service MY SERVICE,ANOTHER SERVICE[ on HOST1,HOST2,HOST3]";
+    return "Available commands: overview, overview hosts, problems, problem hosts, downtimes, host FOO,BAR,BAZ, services on FOO,BAR,BAZ, service MY SERVICE,ANOTHER SERVICE[ on HOST1,HOST2,HOST3]";
 }
 
 1;
