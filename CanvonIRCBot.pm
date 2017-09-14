@@ -387,13 +387,36 @@ sub said
         my ($line) = @_;
         $bot->log_debug("Passing back line: \"".escape_nonprints($line)."\"");
         $irc_msg->{body} = $line;
-        $bot->say(%{$irc_msg});
+        if (exists $irc_msg->{'address'} && ($irc_msg->{'address'} // "") eq "join") {
+            # (Prevent Bot::BasicBot from generating an empty response address.)
+            delete local $irc_msg->{'address'} unless exists $irc_msg->{'who'};
+
+            # Otherwise, try to prevent the "recipient"'s IRC client
+            # from generating a highlight.
+            #
+            # (Note: this cannot be combined with the exists test above,
+            # as then the local will fall out of scope before its use
+            # will have been needed!)
+            local $irc_msg->{'who'} = colorize_datetime($irc_msg->{'who'})
+              if exists $irc_msg->{'who'};
+
+            # We're responding to a channel join. This is a rather automatic
+            # action, so don't produce too much channel activity for it.
+            # That is, use a notice.
+            $bot->notice(%{$irc_msg});
+        }
+        else {
+            $bot->say(%{$irc_msg});
+        }
     };
 
     # Say nothing unless we were addressed.
     return undef unless $irc_msg->{address};
 
-    $bot->log_debug("We were addressed! ".$irc_msg->{who}." said to us: \"".escape_nonprints($irc_msg->{body})."\"");
+    $bot->log_debug("We were addressed! ".
+        ($irc_msg->{'address'} eq "join" ? "Join of " : "").
+        (exists $irc_msg->{who} ? $irc_msg->{who} : "(Nobody, possibly self)").
+        " said to us: \"".escape_nonprints($irc_msg->{body})."\"");
 
     for ($irc_msg->{body})
     {
@@ -629,9 +652,39 @@ sub said
     return undef;
 }
 
+sub chanjoin {
+    my ($bot, $irc_msg) = @_;
+
+    my $selfjoin = $irc_msg->{'who'} eq $bot->pocoirc->nick_name;
+
+    $bot->log_info("Channel join to " . $irc_msg->{'channel'} .
+        " by " . $irc_msg->{'who'} .
+        ($selfjoin ? " (self-join)" : ""));
+
+    return undef unless exists $bot->{'nagios_onjoin'} && defined $bot->{'nagios_onjoin'};
+
+    # Prepare internal request.
+    #
+    # On own (bot) join, noone shall get addressed.
+    delete $irc_msg->{'who'} if $selfjoin;
+    #
+    # Signalize to "said" that this was due to a channel join.
+    # (It'll switch form public channel message to channel notice, then.)
+    $irc_msg->{'address'} = "join";
+    #
+    # Request to make on join:
+    $irc_msg->{'body'} = $bot->{'nagios_onjoin'};
+
+    # Process internal request. Ignore the return value, to get rid of
+    # "End of output of ..." messages.
+    $bot->said($irc_msg);
+
+    return undef;
+}
+
 sub help
 {
-    return "Available commands: problems, problem hosts, downtimes, host FOO,BAR,BAZ, services on FOO,BAR,BAZ, service MY SERVICE,ANOTHER SERVICE[ on HOST1,HOST2,HOST3]";
+    return "Available commands: overview, overview hosts, problems, problem hosts, downtimes, host FOO,BAR,BAZ, services on FOO,BAR,BAZ, service MY SERVICE,ANOTHER SERVICE[ on HOST1,HOST2,HOST3]";
 }
 
 1;

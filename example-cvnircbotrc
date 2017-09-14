@@ -11,6 +11,7 @@ return [
 
 	nagios_logfile  => undef,
 	nagios_channels => ['#botchannel'],
+	#nagios_onjoin   => "overview",
 
 	debug => 1,
 ];
