@@ -387,13 +387,21 @@ sub said
         my ($line) = @_;
         $bot->log_debug("Passing back line: \"".escape_nonprints($line)."\"");
         $irc_msg->{body} = $line;
-        $bot->say(%{$irc_msg});
+        if (($irc_msg->{'address'} // "") eq "join") {
+            # We're responding to a channel join. This is a rather automatic
+            # action, so don't produce too much channel activity for it.
+            # That is, use a notice.
+            $bot->notice(%{$irc_msg});
+        }
+        else {
+            $bot->say(%{$irc_msg});
+        }
     };
 
     # Say nothing unless we were addressed.
     return undef unless $irc_msg->{address};
 
-    $bot->log_debug("We were addressed! ".$irc_msg->{who}." said to us: \"".escape_nonprints($irc_msg->{body})."\"");
+    $bot->log_debug("We were addressed! ".($irc_msg->{who} // "(Nobody, perhaps internal request)")." said to us: \"".escape_nonprints($irc_msg->{body})."\"");
 
     for ($irc_msg->{body})
     {
@@ -632,12 +640,21 @@ sub said
 sub chanjoin {
     my ($bot, $irc_msg) = @_;
 
-    # FIXME
-    $bot->notice(channel => $irc_msg->{'channel'}, body => "\x0314" . $irc_msg->{'who'} . " joined");
+    # Prepare internal request.
+    #
+    # On own (bot) join, noone shall get addressed.
+    delete $irc_msg->{'who'} if $irc_msg->{'who'} eq $bot->pocoirc->nick_name;
+    #
+    # Signalize to "said" that this was due to a channel join.
+    # (It'll switch form public channel message to channel notice, then.)
+    $irc_msg->{'address'} = "join";
+    #
+    # Request to make on join:
+    $irc_msg->{'body'} = "overview";
 
-    return undef unless $irc_msg->{'who'} eq $bot->pocoirc->nick_name;
-
-    $bot->notice(channel => $irc_msg->{'channel'}, body => "(I guess that was me.)");
+    # Process internal request. Ignore the return value, to get rid of
+    # "End of output of ..." messages.
+    $bot->said($irc_msg);
 
     return undef;
 }
