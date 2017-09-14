@@ -661,6 +661,8 @@ sub chanjoin {
         " by " . $irc_msg->{'who'} .
         ($selfjoin ? " (self-join)" : ""));
 
+    return undef unless exists $bot->{'nagios_onjoin'} && defined $bot->{'nagios_onjoin'};
+
     # Prepare internal request.
     #
     # On own (bot) join, noone shall get addressed.
@@ -671,7 +673,7 @@ sub chanjoin {
     $irc_msg->{'address'} = "join";
     #
     # Request to make on join:
-    $irc_msg->{'body'} = "overview";
+    $irc_msg->{'body'} = $bot->{'nagios_onjoin'};
 
     # Process internal request. Ignore the return value, to get rid of
     # "End of output of ..." messages.
