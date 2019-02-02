@@ -48,6 +48,15 @@ sub get_nagios_logfile
     return $bot->{nagios_logfile};
 }
 
+sub get_icli_command
+{
+    my ($bot) = @_;
+
+    die("Nagios/Icinga accessor command icli not configured!\n") unless exists($bot->{icli});
+    return "icli" unless defined($bot->{icli});
+    return $bot->{icli};
+}
+
 sub init
 {
     my ($bot) = @_;
@@ -95,6 +104,8 @@ sub init
       unless (exists($bot->{nagios_channels}) &&
               defined($bot->{nagios_channels}) &&
               @{$bot->{nagios_channels}} >= 1);
+
+    $bot->get_icli_command();
 
     my $nagios_logfile = $bot->get_nagios_logfile();
 
@@ -424,8 +435,9 @@ sub said
         {
             $bot->log_info("Request for command 'overview'; starting icli...");
 
-            #my $result = `icli -C -xn -z'!o'`;
-            my $result = `icli -v -C -xn -o`;
+            my $icli = quotemeta($bot->get_icli_command());
+            #my $result = `$icli -C -xn -z'!o'`;
+            my $result = `$icli -v -C -xn -o`;
             my $oline_accum = '';
             my $is_firstline = 1;
             my $type;
@@ -486,7 +498,8 @@ sub said
         {
             $bot->log_info("Request for command 'overview hosts'; starting icli...");
 
-            my $result = `icli -v -C -xn -o -lh`;
+            my $icli = quotemeta($bot->get_icli_command());
+            my $result = `$icli -v -C -xn -o -lh`;
             foreach my $line (split(/\n/, $result))
             {
                 next unless (length($line) >= 1);
@@ -504,8 +517,9 @@ sub said
         {
             $bot->log_info("Request for command 'problems'; starting icli...");
 
-            #my $result = `icli -C -xn -z'!o'`;
-            my $result = `icli -v -C -xn -z'!o'`;
+            my $icli = quotemeta($bot->get_icli_command());
+            #my $result = `$icli -C -xn -z'!o'`;
+            my $result = `$icli -v -C -xn -z'!o'`;
             foreach my $line (split(/\n/, $result))
             {
                 next unless (length($line) >= 1);
@@ -523,7 +537,8 @@ sub said
         {
             $bot->log_info("Request for command 'problem hosts'; starting icli...");
 
-            my $result = `icli -v -C -xn -lh -z'!o'`;
+            my $icli = quotemeta($bot->get_icli_command());
+            my $result = `$icli -v -C -xn -lh -z'!o'`;
             foreach my $line (split(/\n/, $result))
             {
                 next unless (length($line) >= 1);
@@ -541,7 +556,8 @@ sub said
         {
             $bot->log_info("Request for command 'downtimes'; starting icli...");
 
-            my $result = `icli -v -C -xn -ld`;
+            my $icli = quotemeta($bot->get_icli_command());
+            my $result = `$icli -v -C -xn -ld`;
             foreach my $line (split(/\n/, $result))
             {
                 next unless (length($line) >= 1);
@@ -567,7 +583,8 @@ sub said
             }
 
             $bot->log_debug("Starting icli...");
-            my $result = `icli -v -C -xn -lh -h '$host'`;
+            my $icli = quotemeta($bot->get_icli_command());
+            my $result = `$icli -v -C -xn -lh -h '$host'`;
             foreach my $line (split(/\n/, $result))
             {
                 next unless (length($line) >= 1);
@@ -593,7 +610,8 @@ sub said
             }
 
             $bot->log_debug("Starting icli...");
-            my $result = `icli -v -C -xn -ls -h '$host'`;
+            my $icli = quotemeta($bot->get_icli_command());
+            my $result = `$icli -v -C -xn -ls -h '$host'`;
             foreach my $line (split(/\n/, $result))
             {
                 next unless (length($line) >= 1);
@@ -624,9 +642,10 @@ sub said
             }
 
             $bot->log_debug("Starting icli...");
+            my $icli = quotemeta($bot->get_icli_command());
             my $result = defined($host)
-                ? `icli -v -C -xn -ls -h '$host' -s '$service'`
-                : `icli -v -C -xn -ls            -s '$service'`;
+                ? `$icli -v -C -xn -ls -h '$host' -s '$service'`
+                : `$icli -v -C -xn -ls            -s '$service'`;
             foreach my $line (split(/\n/, $result))
             {
                 next unless (length($line) >= 1);
