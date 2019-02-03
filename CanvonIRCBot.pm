@@ -297,6 +297,11 @@ sub colorize_servicestate
         elsif (/^WARNING$/)  { return "\x031,8$state\x0f"; }
         elsif (/^CRITICAL$/) { return "\x030,4$state\x0f"; }
         elsif (/^UNKNOWN$/)  { return "\x030,12$state\x0f"; }
+        # Additional keywords used by (at least) Icinga 2:
+        elsif (/^RECOVERY$/)      { return "\x031,9$state\x0f"; }
+        elsif (/^FLAPPINGSTART$/) { return "\x030,4$state\x0f"; }
+        elsif (/^FLAPPINGEND$/)   { return "\x030,12$state\x0f"; }
+        # If all else fails..:
         else                 { return "\x030,14$state\x0f"; }
     }
 }
