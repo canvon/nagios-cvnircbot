@@ -133,6 +133,10 @@ sub reopen_logfile
     # Put the file handle into the bot state.
     $bot->{nagios_logfile_fh} = $fh;
 
+    my ($logfile_device, $logfile_inode) = stat($fh);
+    $bot->{nagios_logfile_device} = $logfile_device;
+    $bot->{nagios_logfile_inode}  = $logfile_inode;
+
     # Seek to EOF, for later waiting for more log lines to appear.
     $bot->log_debug("Seeking to end of Nagios log file...");
     $fh->seek(0, SEEK_END) or die("Can't seek to end of Nagios log file: $!\n");
@@ -140,6 +144,25 @@ sub reopen_logfile
     # Set non-blocking IO.
     $bot->log_debug("Setting Nagios log file file handle to non-blocking IO...");
     $fh->blocking(0) or die("Can't set Nagios log file file handle to non-blocking IO: $!\n");
+
+    return 1;
+}
+
+sub check_reopen_logfile
+{
+    my ($bot) = @_;
+
+    return $bot->reopen_logfile() unless defined($bot->{nagios_logfile_fh});
+
+    my $old_device = $bot->{nagios_logfile_device};
+    my $old_inode  = $bot->{nagios_logfile_inode};
+
+    my $nagios_logfile = $bot->get_nagios_logfile();
+    my ($logfile_device, $logfile_inode) = stat($nagios_logfile);
+
+    return $bot->reopen_logfile()
+        unless $logfile_device == $old_device &&
+               $logfile_inode  == $old_inode;
 
     return 1;
 }
@@ -301,6 +324,8 @@ sub tick
     my ($bot) = @_;
 
     my $next_tick_secs = 1;
+
+    $bot->check_reopen_logfile();
 
     my $fh = $bot->{nagios_logfile_fh};
     unless ($fh)
