@@ -107,6 +107,24 @@ sub init
 
     $bot->get_icli_command();
 
+    $bot->reopen_logfile();
+
+    # Everything went well so far.
+    $bot->log_notice("Init succeeded.");
+    return 1;
+}
+
+sub reopen_logfile
+{
+    my ($bot) = @_;
+
+    my $old_fh = $bot->{nagios_logfile_fh};
+    if (defined($old_fh)) {
+        $bot->log_notice("Closing old Nagios log file");
+        close($old_fh);
+        delete($bot->{nagios_logfile_fh});
+    }
+
     my $nagios_logfile = $bot->get_nagios_logfile();
 
     $bot->log_notice("Opening Nagios log file: $nagios_logfile");
@@ -123,8 +141,6 @@ sub init
     $bot->log_debug("Setting Nagios log file file handle to non-blocking IO...");
     $fh->blocking(0) or die("Can't set Nagios log file file handle to non-blocking IO: $!\n");
 
-    # Everything went well so far.
-    $bot->log_notice("Init succeeded.");
     return 1;
 }
 
