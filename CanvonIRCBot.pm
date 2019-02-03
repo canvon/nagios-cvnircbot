@@ -676,7 +676,7 @@ sub said
                 $bot->log_info("Invalid host: \"".escape_nonprints($host)."\"");
                 return "Invalid host.";
             }
-            unless ($service =~ m#^[A-Za-z0-9.][-A-Za-z0-9., /]*$#)
+            unless ($service =~ m#^[A-Za-z0-9._][-A-Za-z0-9._, /]*$#)
             {
                 $bot->log_info("Invalid service: \"".escape_nonprints($service)."\"");
                 return "Invalid service.";
