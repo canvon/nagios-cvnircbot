@@ -283,6 +283,10 @@ sub colorize_hoststate
         #elsif (/^WARNING$/)     { return "\x031,8$state\x0f"; }
         elsif (/^DOWN$/)        { return "\x030,4$state\x0f"; }
         elsif (/^UNREACHABLE$/) { return "\x030,12$state\x0f"; }
+        # Additional host states used by (at least) Icinga 2:
+        elsif (/^RECOVERY \(UP\)$/)             { return "\x031,9$state\x0f"; }
+        elsif (/^UNREACHABLE \(UNREACHABLE\)$/) { return "\x030,12$state\x0f"; }
+        # If all else fails..:
         else                    { return "\x030,14$state\x0f"; }
     }
 }
