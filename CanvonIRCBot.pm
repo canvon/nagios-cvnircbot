@@ -373,6 +373,7 @@ sub tick
         foreach my $channel (@{$bot->{nagios_channels}})
         {
             my $suppress_noise_channels = $bot->{nagios_suppress_noise_channels};
+               $suppress_noise_channels = [] unless defined($suppress_noise_channels);
             my $suppress = grep { $_ eq $channel } (@$suppress_noise_channels);
 
             my $out = '';
