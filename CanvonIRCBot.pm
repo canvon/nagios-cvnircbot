@@ -372,6 +372,9 @@ sub tick
             ", passing it on to configured channels...");
         foreach my $channel (@{$bot->{nagios_channels}})
         {
+            my $suppress_noise_channels = $bot->{nagios_suppress_noise_channels};
+            my $suppress = grep { $_ eq $channel } (@$suppress_noise_channels);
+
             my $out = '';
             my $out_public = 0;
 
@@ -396,7 +399,7 @@ sub tick
                             colorize_datetime("Date/Time: ".localtime($msg->{timestamp}));
                     $out_public = 1;
                 }
-                elsif ($msg->{type} eq 'HOST ALERT')
+                elsif ($msg->{type} eq 'HOST ALERT' and !$suppress)
                 {
                     $out .= "host alert: ".$msg->{data}{HOSTNAME}.
                             " is ".$msg->{data}{HOSTSTATE}.
@@ -405,7 +408,7 @@ sub tick
                             "):  Info: ".$msg->{data}{HOSTOUTPUT}.
                             "  ".colorize_datetime("Date/Time: ".localtime($msg->{timestamp}));
                 }
-                elsif ($msg->{type} eq 'SERVICE ALERT')
+                elsif ($msg->{type} eq 'SERVICE ALERT' and !$suppress)
                 {
                     $out .= "service alert: ".$msg->{data}{HOSTNAME}.
                             "/".$msg->{data}{SERVICEDESC}.
