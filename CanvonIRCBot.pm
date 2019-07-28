@@ -346,8 +346,8 @@ sub tick
     }
 
     # Try to read a log line.
-    my $line = <$fh>;
-    if (defined($line))
+    my $line;
+    while (defined($line = <$fh>))
     {
         chomp($line);
 
