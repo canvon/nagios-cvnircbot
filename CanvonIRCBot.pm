@@ -97,7 +97,9 @@ sub init
     ];
     $bot->{nagios_msg_ignore} = [
         'PASSIVE HOST CHECK',
-        'PASSIVE SERVICE CHECK'
+        'PASSIVE SERVICE CHECK',
+        'CURRENT HOST STATE',
+        'CURRENT SERVICE STATE'
     ];
 
     die("No Nagios log channels defined!\n")
